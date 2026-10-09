@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
-use tomo_physics::ray::{NO_HIT, RayInvDirection, ray_aabb, ray_aabb_interval, ray_sphere, ray_triangle};
+use tomo_physics::ray::{
+    NO_HIT, RayInvDirection, ray_aabb, ray_aabb_interval, ray_sphere, ray_triangle,
+};
 use tomo_physics::{Aabb, Vec3};
 
 fn unit_box() -> Aabb {
@@ -64,8 +66,14 @@ fn negative_scaling_and_empty_preservation() {
 #[test]
 fn support_and_distance() {
     let b = unit_box();
-    assert_eq!(b.support(Vec3::new(0.0, -2.0, 3.0)), Vec3::new(1.0, -1.0, 1.0));
-    assert_eq!(b.closest_point(Vec3::new(4.0, 0.0, -5.0)), Vec3::new(1.0, 0.0, -1.0));
+    assert_eq!(
+        b.support(Vec3::new(0.0, -2.0, 3.0)),
+        Vec3::new(1.0, -1.0, 1.0)
+    );
+    assert_eq!(
+        b.closest_point(Vec3::new(4.0, 0.0, -5.0)),
+        Vec3::new(1.0, 0.0, -1.0)
+    );
     assert_eq!(b.squared_distance_to(Vec3::new(4.0, 0.0, -5.0)), 25.0);
     assert_eq!(b.squared_distance_to(Vec3::ZERO), 0.0);
 }
@@ -85,8 +93,14 @@ fn invalid_interior_box_does_not_overlap() {
 
 #[test]
 fn sphere_ray_nonunit_direction() {
-    assert_eq!(ray_sphere(Vec3::new(-3.0, 0.0, 0.0), Vec3::X * 4.0, Vec3::ZERO, 1.0), 0.5);
-    assert_eq!(ray_sphere(Vec3::new(-3.0, 0.0, 0.0), Vec3::X, Vec3::ZERO, 1.0), 2.0);
+    assert_eq!(
+        ray_sphere(Vec3::new(-3.0, 0.0, 0.0), Vec3::X * 4.0, Vec3::ZERO, 1.0),
+        0.5
+    );
+    assert_eq!(
+        ray_sphere(Vec3::new(-3.0, 0.0, 0.0), Vec3::X, Vec3::ZERO, 1.0),
+        2.0
+    );
 }
 
 #[test]
@@ -94,13 +108,22 @@ fn sphere_inside_surface_and_stationary() {
     assert_eq!(ray_sphere(Vec3::ZERO, Vec3::X, Vec3::ZERO, 1.0), 0.0);
     assert_eq!(ray_sphere(Vec3::X, Vec3::X, Vec3::ZERO, 1.0), 0.0);
     assert_eq!(ray_sphere(Vec3::ZERO, Vec3::ZERO, Vec3::ZERO, 1.0), 0.0);
-    assert_eq!(ray_sphere(Vec3::X * 2.0, Vec3::ZERO, Vec3::ZERO, 1.0), NO_HIT);
+    assert_eq!(
+        ray_sphere(Vec3::X * 2.0, Vec3::ZERO, Vec3::ZERO, 1.0),
+        NO_HIT
+    );
 }
 
 #[test]
 fn sphere_tangent_miss_and_behind() {
-    assert_eq!(ray_sphere(Vec3::new(-2.0, 1.0, 0.0), Vec3::X, Vec3::ZERO, 1.0), 2.0);
-    assert_eq!(ray_sphere(Vec3::new(-2.0, 2.0, 0.0), Vec3::X, Vec3::ZERO, 1.0), NO_HIT);
+    assert_eq!(
+        ray_sphere(Vec3::new(-2.0, 1.0, 0.0), Vec3::X, Vec3::ZERO, 1.0),
+        2.0
+    );
+    assert_eq!(
+        ray_sphere(Vec3::new(-2.0, 2.0, 0.0), Vec3::X, Vec3::ZERO, 1.0),
+        NO_HIT
+    );
     assert_eq!(ray_sphere(Vec3::X * 3.0, Vec3::X, Vec3::ZERO, 1.0), NO_HIT);
 }
 
@@ -113,7 +136,10 @@ fn zero_radius_sphere() {
 #[test]
 fn box_ray_entry_exit_and_inside() {
     let inv = RayInvDirection::new(Vec3::X * 2.0);
-    assert_eq!(ray_aabb_interval(-Vec3::X * 3.0, &inv, unit_box()), Some((1.0, 2.0)));
+    assert_eq!(
+        ray_aabb_interval(-Vec3::X * 3.0, &inv, unit_box()),
+        Some((1.0, 2.0))
+    );
     assert_eq!(ray_aabb(Vec3::ZERO, &inv, unit_box()), -0.5);
     assert_eq!(ray_aabb(Vec3::X * 3.0, &inv, unit_box()), NO_HIT);
 }
@@ -130,7 +156,10 @@ fn box_parallel_boundaries_and_near_parallel() {
 #[test]
 fn box_stationary_and_negative_direction() {
     let still = RayInvDirection::new(Vec3::ZERO);
-    assert_eq!(ray_aabb_interval(Vec3::ZERO, &still, unit_box()), Some((-f32::MAX, f32::MAX)));
+    assert_eq!(
+        ray_aabb_interval(Vec3::ZERO, &still, unit_box()),
+        Some((-f32::MAX, f32::MAX))
+    );
     assert_eq!(ray_aabb(Vec3::X * 2.0, &still, unit_box()), NO_HIT);
     let inv = RayInvDirection::new(-Vec3::X * 2.0);
     assert_eq!(ray_aabb(Vec3::X * 3.0, &inv, unit_box()), 1.0);
@@ -139,16 +168,34 @@ fn box_stationary_and_negative_direction() {
 #[test]
 fn triangle_front_back_and_edge() {
     let p = Vec3::new(0.25, 0.25, 1.0);
-    assert_eq!(ray_triangle(p, -Vec3::Z * 2.0, Vec3::ZERO, Vec3::X, Vec3::Y), 0.5);
+    assert_eq!(
+        ray_triangle(p, -Vec3::Z * 2.0, Vec3::ZERO, Vec3::X, Vec3::Y),
+        0.5
+    );
     assert_eq!(ray_triangle(p, -Vec3::Z, Vec3::ZERO, Vec3::Y, Vec3::X), 1.0);
-    assert_eq!(ray_triangle(Vec3::Z, -Vec3::Z, Vec3::ZERO, Vec3::X, Vec3::Y), 1.0);
+    assert_eq!(
+        ray_triangle(Vec3::Z, -Vec3::Z, Vec3::ZERO, Vec3::X, Vec3::Y),
+        1.0
+    );
 }
 
 #[test]
 fn triangle_miss_parallel_degenerate_and_behind() {
     let p = Vec3::new(0.25, 0.25, 1.0);
-    assert_eq!(ray_triangle(p, Vec3::X, Vec3::ZERO, Vec3::X, Vec3::Y), NO_HIT);
-    assert_eq!(ray_triangle(p, Vec3::Z, Vec3::ZERO, Vec3::X, Vec3::Y), NO_HIT);
-    assert_eq!(ray_triangle(p, -Vec3::Z, Vec3::ZERO, Vec3::X, Vec3::X), NO_HIT);
-    assert_eq!(ray_triangle(Vec3::ONE, -Vec3::Z, Vec3::ZERO, Vec3::X, Vec3::Y), NO_HIT);
+    assert_eq!(
+        ray_triangle(p, Vec3::X, Vec3::ZERO, Vec3::X, Vec3::Y),
+        NO_HIT
+    );
+    assert_eq!(
+        ray_triangle(p, Vec3::Z, Vec3::ZERO, Vec3::X, Vec3::Y),
+        NO_HIT
+    );
+    assert_eq!(
+        ray_triangle(p, -Vec3::Z, Vec3::ZERO, Vec3::X, Vec3::X),
+        NO_HIT
+    );
+    assert_eq!(
+        ray_triangle(Vec3::ONE, -Vec3::Z, Vec3::ZERO, Vec3::X, Vec3::Y),
+        NO_HIT
+    );
 }

@@ -141,9 +141,21 @@ impl Aabb {
     /// Requires a valid box.
     pub fn support(self, direction: Vec3) -> Vec3 {
         Vec3::new(
-            if direction.x < 0.0 { self.min.x } else { self.max.x },
-            if direction.y < 0.0 { self.min.y } else { self.max.y },
-            if direction.z < 0.0 { self.min.z } else { self.max.z },
+            if direction.x < 0.0 {
+                self.min.x
+            } else {
+                self.max.x
+            },
+            if direction.y < 0.0 {
+                self.min.y
+            } else {
+                self.max.y
+            },
+            if direction.z < 0.0 {
+                self.min.z
+            } else {
+                self.max.z
+            },
         )
     }
 

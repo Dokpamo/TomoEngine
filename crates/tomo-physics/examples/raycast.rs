@@ -8,7 +8,13 @@ fn main() {
     let sphere = ray_sphere(origin, direction, Vec3::ZERO, 1.0);
     let bounds = Aabb::new(-Vec3::ONE, Vec3::ONE);
     let box_hit = ray_aabb(origin, &RayInvDirection::new(direction), bounds);
-    let triangle = ray_triangle(Vec3::new(0.25, 0.25, 1.0), -Vec3::Z, Vec3::ZERO, Vec3::X, Vec3::Y);
+    let triangle = ray_triangle(
+        Vec3::new(0.25, 0.25, 1.0),
+        -Vec3::Z,
+        Vec3::ZERO,
+        Vec3::X,
+        Vec3::Y,
+    );
     assert_eq!(sphere, 0.5);
     assert_eq!(box_hit, 0.5);
     assert_eq!(triangle, 1.0);

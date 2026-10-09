@@ -25,7 +25,10 @@ fn ten_thousand_box_union_intersection_and_support_invariants() {
         let b = Aabb::from_two_points(rng.vector(), rng.vector());
         let mut union = a;
         union.encapsulate_box(b);
-        assert!(union.contains_box(a) && union.contains_box(b), "case {case}: {a:?} {b:?}");
+        assert!(
+            union.contains_box(a) && union.contains_box(b),
+            "case {case}: {a:?} {b:?}"
+        );
         assert_eq!(a.overlaps(b), b.overlaps(a));
         assert_eq!(a.overlaps(b), a.intersection(b).is_valid());
         let direction = rng.vector();
@@ -36,7 +39,10 @@ fn ten_thousand_box_union_intersection_and_support_invariants() {
                 if bits & 2 == 0 { a.min.y } else { a.max.y },
                 if bits & 4 == 0 { a.min.z } else { a.max.z },
             );
-            assert!(support.dot(direction) + 1.0e-4 >= corner.dot(direction), "case {case}: {a:?} {direction:?}");
+            assert!(
+                support.dot(direction) + 1.0e-4 >= corner.dot(direction),
+                "case {case}: {a:?} {direction:?}"
+            );
         }
     }
 }
@@ -51,7 +57,10 @@ fn ten_thousand_sphere_hit_and_parameterization_invariants() {
         let origin = center + axis * (radius + 3.0);
         let direction = -axis * 6.0;
         let t = ray_sphere(origin, direction, center, radius);
-        assert!(t != NO_HIT && (t - 0.5).abs() < 5.0e-4, "case {case}: {origin:?} {direction:?} {center:?} {radius} => {t}");
+        assert!(
+            t != NO_HIT && (t - 0.5).abs() < 5.0e-4,
+            "case {case}: {origin:?} {direction:?} {center:?} {radius} => {t}"
+        );
         let hit = origin + direction * t;
         assert!(((hit - center).length() - radius).abs() < 5.0e-4);
         let half = ray_sphere(origin, direction * 2.0, center, radius);
@@ -69,6 +78,9 @@ fn ten_thousand_box_ray_known_face_hits() {
         let origin = Vec3::new(bounds.min.x - 4.0, center.y, center.z);
         let inverse = RayInvDirection::new(Vec3::X * 8.0);
         let fraction = ray_aabb(origin, &inverse, bounds);
-        assert!((fraction - 0.5).abs() < 1.0e-6, "case {case}: {bounds:?} {origin:?} => {fraction}");
+        assert!(
+            (fraction - 0.5).abs() < 1.0e-6,
+            "case {case}: {bounds:?} {origin:?} => {fraction}"
+        );
     }
 }
