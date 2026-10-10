@@ -22,7 +22,7 @@ class Transactions(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.source = self.root / 'examples/rust_game/src/main.rs'
         self.source.parent.mkdir(parents=True)
-        self.source.write_text('fn main() {}\n')
+        self.source.write_text('fn main() {}\n', newline='')
         self.base = self.source.read_text()
         self.after = 'fn main() { println!("Game"); }\n'
         self.request = dict(schema_version=1, request_id='edit_1', path=str(self.source.relative_to(self.root)), expected_sha256=edit.digest(self.base), content=self.after)
@@ -52,6 +52,16 @@ class Transactions(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.run_edit(dict(self.request, request_id='edit_2'))
         self.assertEqual(self.source.read_text(), 'someone else changed it\n')
+
+    def test_exact_bytes_survive_line_ending_change_and_rollback(self):
+        before = 'fn main() {}\r\n'
+        self.source.write_bytes(before.encode())
+        request = dict(self.request, expected_sha256=edit.digest(before))
+        result = self.run_edit(request)
+        self.assertEqual(self.source.read_bytes(), self.after.encode())
+        self.assertEqual(result['sha256'], edit.digest(self.after))
+        self.run_edit(None, '--rollback', 'edit_1', '--request-id', 'undo_1')
+        self.assertEqual(self.source.read_bytes(), before.encode())
 
     def test_failed_check_and_interrupted_write_preserve_source(self):
         with patch.object(edit, 'checked', side_effect=ValueError('compiler rejected candidate')):

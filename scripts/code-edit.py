@@ -33,7 +33,7 @@ def bounded(path, limit=LIMIT):
     return data.decode('utf-8')
 
 def write_new(path, text):
-    with path.open('x', encoding='utf-8') as out:
+    with path.open('x', encoding='utf-8', newline='') as out:
         out.write(text)
         out.flush()
         os.fsync(out.fileno())
