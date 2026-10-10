@@ -10,7 +10,8 @@ EXPECTED = {
     "tomo-physics": set(),
     "tomo-scene": {"serde", "serde_json"},
     "tomo-runtime": {"serde", "tomo-scene", "tomo-physics"},
-    "tomo-cli": {"serde_json", "tomo-scene", "tomo-runtime"},
+    "tomo-render": {"serde", "serde_json", "tomo-scene", "tomo-runtime", "wgpu", "pollster", "png"},
+    "tomo-cli": {"serde_json", "tomo-scene", "tomo-runtime", "tomo-render"},
 }
 REVIEWED = {
     "serde", "serde_core", "serde_derive", "serde_json", "itoa", "memchr", "ryu",
@@ -21,7 +22,7 @@ NATIVE_SUFFIXES = {".c", ".cc", ".cpp", ".cxx", ".h", ".hpp", ".a", ".lib", ".so
 
 def main():
     data = json.loads(subprocess.check_output(
-        ["cargo", "metadata", "--format-version", "1", "--locked", "--offline"],
+        ["cargo", "metadata", "--format-version", "1", "--all-features", "--locked", "--offline"],
         cwd=ROOT, text=True,
     ))
     members = set(data["workspace_members"])
@@ -41,15 +42,35 @@ def main():
             if path.is_file() and (path.name == "build.rs" or path.suffix in NATIVE_SUFFIXES):
                 raise ValueError(f"unreviewed native/build source: {path}")
     external = [p for p in data["packages"] if p["id"] not in members]
+    approved = json.loads((ROOT / "scripts/reviewed-dependencies.json").read_text())
+    observed = sorted([
+        {"name": p["name"], "version": p["version"], "source": p["source"],
+         "license": p.get("license"), "links": p.get("links"),
+         "build_script": any(t["kind"] == ["custom-build"] for t in p["targets"])}
+        for p in external
+    ], key=lambda p: (p["name"], p["version"]))
+    if observed != approved:
+        raise ValueError("dependency manifest changed: review versions, licenses and native/build boundaries")
     for package in external:
-        if package["name"] not in REVIEWED or package.get("links"):
-            raise ValueError(f"unreviewed dependency/native links: {package['name']}")
         if not package.get("source", "").startswith("registry+"):
             raise ValueError(f"unexpected dependency source: {package['name']}")
-        print(f"reviewed dependency: {package['name']} {package['version']} ({package.get('license')})")
+    # GPU/OS dependencies are allowed only above the scene/runtime/physics boundary.
+    nodes = {node["id"]: node for node in data["resolve"]["nodes"]}
+    packages = {package["id"]: package for package in data["packages"]}
+    visited = set()
+    pending = [local[name]["id"] for name in ("tomo-physics", "tomo-scene", "tomo-runtime")]
+    while pending:
+        identity = pending.pop()
+        if identity in visited:
+            continue
+        visited.add(identity)
+        package = packages[identity]
+        if identity not in members and (package["name"] not in REVIEWED or package.get("links")):
+            raise ValueError(f"GPU/native dependency leaked into core: {package['name']}")
+        pending.extend(nodes[identity]["dependencies"])
     for path in sorted((ROOT / "schemas").glob("*.json")):
         json.loads(path.read_text(encoding="utf-8"))
-    print("PASS: four crate boundaries; zero physics dependencies; reviewed serialization graph")
+    print(f"PASS: five crate boundaries; zero physics dependencies; {len(external)} pinned external packages; GPU isolated from core")
 
 
 if __name__ == "__main__":

@@ -7,6 +7,10 @@ engine. Read docs/PROJECT.md, docs/ARCHITECTURE.md and docs/ROADMAP.md first.
 The old repository-wide prohibition on renderer/tool work is superseded only by
 this explicit scope decision; the Jolt direct-port objective is NOT superseded.
 
+The owner requested integration of PRs #1 and #3 into main and continued development
+on main. Keep this checkout on main unless the owner changes that direction.
+Use ordinary commits/pushes and preserve remote history; do not force-push.
+
 ## Boundaries
 
 - crates/tomo-physics remains a standalone direct Rust Jolt port. Read its scoped
@@ -18,8 +22,10 @@ this explicit scope decision; the Jolt direct-port objective is NOT superseded.
 - Do not create empty crates or success-returning stubs to suggest completion.
 - Mark planned, implemented, tested, upstream-equivalent and platform-verified
   capabilities separately. Headless execution is not rendering or a complete game.
-- Project-authored Rust uses forbid(unsafe_code). External Rust serialization
+- Project-authored Rust uses forbid(unsafe_code). Serialization and optional renderer
   dependencies are scoped and lockfile-pinned; their internals are not claimed safe-only.
+- GPU/OS integration belongs only to tomo-render and render-enabled tools. Read
+  docs/RENDERING.md for the pinned backend/MSRV policy and explicit GPU test commands.
 - Add external/native dependencies only with a documented purpose and policy review.
 - Do not call paid providers, publish releases or change repository security settings
   merely to implement a local feature. Never commit API/signing keys or private SDKs.

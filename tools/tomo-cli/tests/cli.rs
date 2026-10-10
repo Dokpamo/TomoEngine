@@ -26,7 +26,7 @@ fn invoke(args: &[&str]) -> (i32, Value) {
 fn capabilities_are_explicit_about_missing_features() {
     let (code, value) = invoke(&["capabilities"]);
     assert_eq!(code, 0);
-    assert_eq!(value["rendering"], false);
+    assert_eq!(value["rendering"], cfg!(feature = "render"));
     assert_eq!(value["jolt_complete"], false);
     assert_eq!(value["autonomous_agent"], false);
 }
@@ -95,4 +95,81 @@ fn unknown_command_missing_file_and_invalid_tick_fail_structurally() {
         assert_eq!(code, 2, "{ticks}: {value}");
         assert!(value["error"]["code"].is_string());
     }
+}
+
+#[test]
+#[cfg(not(feature = "render"))]
+fn capture_without_renderer_reports_unsupported() {
+    let (code, value) = invoke(&[
+        "capture",
+        "missing.json",
+        "--ticks",
+        "0",
+        "--output",
+        "new.png",
+    ]);
+    assert_eq!(code, 2);
+    assert_eq!(value["error"]["code"], "UNSUPPORTED");
+}
+
+#[test]
+#[cfg(feature = "render")]
+fn capture_rejects_bad_arguments_before_gpu_work() {
+    let path = fixture("scenes/falling_box.scene.json");
+    for args in [
+        vec!["capture", &path],
+        vec!["capture", &path, "--ticks", "-1", "--output", "new.png"],
+        vec![
+            "capture", &path, "--ticks", "0", "--ticks", "1", "--output", "new.png",
+        ],
+        vec!["capture", &path, "--ticks", "0", "--output", &path],
+    ] {
+        let (code, value) = invoke(&args);
+        assert_eq!(code, 2, "{value}");
+        assert_eq!(value["error"]["code"], "ARGUMENT");
+    }
+}
+
+#[test]
+#[cfg(feature = "render")]
+#[ignore = "requires a real hardware or software GPU adapter"]
+fn capture_process_preserves_checks_snapshot_and_existing_files() {
+    let directory = std::env::temp_dir().join(format!(
+        "tomo-capture-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    std::fs::create_dir(&directory).unwrap();
+    let image = directory.join("frame.png");
+    let output = image.to_str().unwrap();
+    let scene = fixture("scenes/falling_box.scene.json");
+    let (_, numeric) = invoke(&["run", &scene, "--ticks", "600"]);
+    let (code, rendered) = invoke(&["capture", &scene, "--ticks", "600", "--output", output]);
+    assert_eq!(code, 0, "{rendered}");
+    assert_eq!(rendered["snapshot"], numeric["report"]["snapshot"]);
+    assert_eq!(rendered["capture"]["tick"], 600);
+    let bytes = std::fs::read(&image).unwrap();
+    assert_eq!(&bytes[..8], b"\x89PNG\r\n\x1a\n");
+    assert_eq!(
+        invoke(&["capture", &scene, "--ticks", "0", "--output", output]).0,
+        2
+    );
+    assert_eq!(std::fs::read(&image).unwrap(), bytes);
+    let failed = directory.join("failed.png");
+    let failing_scene = fixture("scenes/expected_failure.scene.json");
+    let (code, value) = invoke(&[
+        "capture",
+        &failing_scene,
+        "--ticks",
+        "120",
+        "--output",
+        failed.to_str().unwrap(),
+    ]);
+    assert_eq!(code, 1, "{value}");
+    assert!(failed.is_file());
+    assert_eq!(value["report"]["passed"], false);
+    std::fs::remove_dir_all(directory).unwrap();
 }

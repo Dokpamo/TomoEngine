@@ -1,7 +1,7 @@
-# M1: 실행 가능한 AI 조작 인터페이스
+# 실행 가능한 AI 조작 인터페이스
 
-이 명령은 `tools/tomo-cli`의 Rust binary `tomo`에 구현되어 있다. 렌더링, LLM,
-Tripo, 앱 패키징은 아직 구현하지 않았다. 외부 AI가 이 명령을 사용할 수 있다는 뜻이며
+이 명령은 `tools/tomo-cli`의 Rust binary `tomo`에 구현되어 있다. `render` feature로
+GPU 이미지 캡처를 추가할 수 있다. LLM, Tripo, 앱 패키징은 아직 구현하지 않았다. 외부 AI가 이 명령을 사용할 수 있다는 뜻이며
 이 CLI가 혼자 자연어를 이해하고 게임을 만드는 자율 에이전트라는 뜻은 아니다.
 
 ## 빌드와 실행
@@ -28,6 +28,7 @@ JSON 라이브러리는 최초 fetch가 필요하지만 Physics 자체에는 추
 | scene validate FILE | 파싱, 규칙 검사, 실제 physics world 구성 | ok, name, revision, body_count |
 | inspect FILE | 새 world의 tick 0 상태 조회 | snapshot: position/rotation/velocities/sleeping |
 | run FILE --ticks N | 고정 dt로 실제 physics 실행 후 최종 검사 | report: effective_scene/provenance/snapshot/checks |
+| capture FILE --ticks N --output NEW.png [--view VIEW.json] [--colliders] | 동일 tick의 GPU PNG 저장 (`render` feature 필요) | image, capture metadata, snapshot, effective_scene, report |
 | scene patch FILE PATCH | revision 검사, clone 변경, 전체 후보 검증 | **재입력 가능한 scene JSON 자체** |
 
 표준출력은 한 개 JSON과 개행이다. patch 성공만 scene 문서 자체를 출력하며, 나머지
@@ -38,6 +39,20 @@ Exit 0: 성공. run에 checks가 없으면 모든 검사 통과는 공집합에 
 Exit 1: 시뮬레이션은 수행됐으나 최종 check 실패.
 Exit 2: 사용법·입력·파일·스키마·수치·revision·자원 한도 오류.
 Exit 3: 실행 중 수치 실패·내부 오류·출력 실패. 실패 world를 계속 실행하지 않는다.
+
+capture는 N=0을 허용한다. 이때 초기 상태를 표시하고 최종 검사는 수행하지 않아 report=null이다.
+N>0이면 run과 같은 검사를 수행한다. 검사에 실패해도 이미지와 보고를 남기고 exit 1을 반환한다.
+GPU가 없으면 GPU_UNAVAILABLE, 렌더링 실패는 RENDER, 이미지 쓰기 실패는 OUTPUT/exit 3이다.
+기본 빌드에는 capture가 없으며 UNSUPPORTED/exit 2를 반환한다. capabilities의 rendering은
+기능 포함 여부이며 사용 가능한 GPU를 탐지했다는 의미가 아니다.
+
+```sh
+cargo run -q -p tomo-cli --features render --locked --offline -- capture examples/scenes/falling_box.scene.json --ticks 600 --output settled.png --view examples/views/default.view.json --colliders
+```
+
+캡처는 기존 파일을 덮어쓰지 않는다. 가로·세로는 각각 1..2048이다. View v1은 별도 카메라/해상도
+문서이며 Scene v1 형식을 바꾸지 않는다. GPU readback/PNG 인코딩 후 새 파일을 생성한다.
+파일과 stdout 보고 사이의 crash transaction은 제공하지 않는다. 상세: [RENDERING.md](RENDERING.md).
 
 ```sh
 # 의도적으로 실패하는 검사: 종료 코드 1이어야 한다.

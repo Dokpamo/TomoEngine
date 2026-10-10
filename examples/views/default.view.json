@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "width": 960,
+  "height": 640,
+  "camera": {
+    "eye": [10, 8, 14],
+    "target": [0, 2, 0],
+    "up": [0, 1, 0],
+    "vertical_fov_degrees": 50,
+    "near": 0.1,
+    "far": 1000
+  },
+  "colliders": false
+}

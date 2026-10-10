@@ -15,12 +15,16 @@
 
 `tomo-scene`에는 serde 자료형과 장면 규칙만 둔다. 물리 API나 GPU 객체를 노출하지 않는다.
 `tomo-runtime`이 안정적인 장면 문자열 ID를 하나의 world의 BodyId로 매핑한다. BodyId를
-파일에 저장하거나 다른 world의 영속 ID로 취급하지 않는다. 렌더러는 이후 snapshot DTO를
+파일에 저장하거나 다른 world의 영속 ID로 취급하지 않는다. 렌더러는 snapshot DTO를
 소비하며 물리 world의 쓰기 참조를 보유하지 않는다.
 
-## 후속 구조: 아직 없는 구현
+현재 `tomo-cli --features render`는 `tomo-render`를 선택적으로 의존한다.
+`tomo-render`는 scene 및 runtime의 읽기 전용 snapshot을 받아 GPU 캡처를 수행한다.
+runtime/scene/physics에서 renderer로 향하는 의존성은 없다.
 
-`tomo-render`: wgpu 기반 렌더링과 캡처, GPU 리소스 수명. 첫 대상은 primitive 시각화.
+## 렌더러와 후속 구조
+
+`tomo-render`의 primitive 이미지 캡처는 구현되었다. 대화형 창과 지속적인 GPU 리소스 재사용은 후속 작업이다.
 `tomo-assets`: GLB·텍스처 가져오기/검증·버전 있는 변환 캐시.
 애니메이션·캐릭터는 책임이 확인될 때 별도 crate로 추출한다. 처음부터 빈 crate를 만들지 않는다.
 플랫폼 어댑터는 창·입력·오디오·저장·수명주기·패키징을 담당한다. 콘솔 코드는 SDK 허가와
@@ -65,8 +69,10 @@ physics crate로 전파되지 않는다. Cargo.lock은 Cargo의 실제 해석 �
 제3자 crate 내부의 unsafe까지 없다고 주장하지 않는다. 향후 GPU·OS 접점의 네이티브
 연동은 physics 정책을 완화하지 않고 별도 결정으로 승인·기록한다.
 
-셰이더·그래픽 드라이버·운영체제까지 Rust로 재작성한다는 목표가 아니다. 현재 렌더러나
-모바일/콘솔 어댑터에 어떤 native dependency도 추가하지 않았다.
+셰이더·그래픽 드라이버·운영체제까지 Rust로 재작성한다는 목표가 아니다.
+렌더러에만 wgpu 26.0.1의 Metal/Vulkan/DX12 GPU·OS 연동과 WGSL 셰이더를 허용한다.
+직접 의존성 목적, 전이 의존성 및 native 경계 검토는 RENDERING.md에 기록한다.
+physics/scene/runtime의 전이 그래프에는 GPU/native 의존성이 들어갈 수 없으며 CI가 이를 검사한다.
 
 ## 에셋·AI 서비스 경계
 
@@ -82,8 +88,9 @@ API 키·서명 키·콘솔 SDK는 저장소 및 배포 게임에 넣지 않는�
 2. 장면 버전·필드·수치·ID·예산 검사와 직렬화 왕복 테스트.
 3. 원자적 patch와 충돌 revision 테스트.
 4. CLI 프로세스의 JSON·종료 코드·낙하 장면·실패 장면 테스트.
-5. 차후 그래픽 캡처/플랫폼 기기/외부 provider/원본 C++ differential 테스트를 별도로 추가한다.
+5. 그래픽 캡처는 별도 GPU 테스트에서 실제 픽셀/깊이/이동/회전/PNG/CLI 동등성을 검사한다.
+6. 모바일 기기/외부 provider/원본 C++ differential 테스트는 여전히 별도 후속 작업이다.
 
 기술 근거: serde의 deny_unknown_fields (https://serde.rs/container-attrs.html),
-serde_json (https://docs.rs/serde_json), wgpu의 후속 renderer 후보 (https://wgpu.rs/).
-렌더러 후보 문서는 구현·플랫폼 지원 증거가 아니다.
+serde_json (https://docs.rs/serde_json), wgpu (https://wgpu.rs/).
+플랫폼 지원 증거는 라이브러리 문서와 별개로 RENDERING.md 및 실제 GPU 검사 결과를 따른다.

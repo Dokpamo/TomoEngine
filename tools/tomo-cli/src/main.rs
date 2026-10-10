@@ -9,6 +9,9 @@ use std::process::ExitCode;
 use tomo_runtime::Runtime;
 use tomo_scene::{Patch, Problem, Scene};
 
+#[cfg(feature = "render")]
+mod capture;
+
 fn read_document(path: &str) -> Result<String, Problem> {
     let file = File::open(path).map_err(|error| Problem::new("IO", path, error.to_string()))?;
     let metadata = file
@@ -38,10 +41,14 @@ fn dispatch(args: &[String]) -> Result<(Value, u8), Problem> {
             json!({
                 "schema_version": 1,
                 "ok": true,
-                "stage": "M1-headless",
-                "commands": ["scene validate", "scene patch", "inspect", "run", "capabilities"],
+                "stage": if cfg!(feature = "render") { "M2-capture" } else { "M1-headless" },
+                "commands": if cfg!(feature = "render") {
+                    vec!["scene validate", "scene patch", "inspect", "run", "capabilities", "capture"]
+                } else { vec!["scene validate", "scene patch", "inspect", "run", "capabilities"] },
                 "supported_shapes": ["box", "sphere"],
-                "rendering": false,
+                "rendering": cfg!(feature = "render"),
+                "rendering_requires_adapter": true,
+                "interactive_window": false,
                 "autonomous_agent": false,
                 "tripo": false,
                 "jolt_complete": false,
@@ -58,7 +65,8 @@ fn dispatch(args: &[String]) -> Result<(Value, u8), Problem> {
                 "ok": true,
                 "usage": ["tomo capabilities", "tomo scene validate SCENE.json",
                     "tomo scene patch SCENE.json PATCH.json", "tomo inspect SCENE.json",
-                    "tomo run SCENE.json --ticks N"],
+                    "tomo run SCENE.json --ticks N",
+                    "tomo capture SCENE.json --ticks N --output NEW.png [--view VIEW.json] [--colliders] (requires render feature)"],
                 "exit_codes": {"0": "success", "1": "check_failed", "2": "input_error", "3": "runtime_or_output_error"}
             }),
             0,
@@ -77,7 +85,7 @@ fn dispatch(args: &[String]) -> Result<(Value, u8), Problem> {
             let patch = Patch::from_json(&read_document(patch_path)?)?;
             let candidate = scene.patched(&patch)?;
             let runtime = Runtime::from_scene(candidate)?;
-            // Direct scene JSON can be reused as input. The CLI never writes files.
+            // Direct scene JSON can be reused as input. Patch never overwrites scenes.
             let value = serde_json::to_value(runtime.scene())
                 .map_err(|error| Problem::new("INTERNAL", "/", error.to_string()))?;
             Ok((value, 0))
@@ -101,6 +109,14 @@ fn dispatch(args: &[String]) -> Result<(Value, u8), Problem> {
                 exit,
             ))
         }
+        #[cfg(feature = "render")]
+        ["capture", path, args @ ..] => capture::dispatch(path, args),
+        #[cfg(not(feature = "render"))]
+        ["capture", ..] => Err(Problem::new(
+            "UNSUPPORTED",
+            "/capture",
+            "build tomo-cli with --features render",
+        )),
         _ => Err(Problem::new(
             "USAGE",
             "/arguments",
@@ -123,7 +139,12 @@ fn main() -> ExitCode {
         Err(error) => {
             let exit = if matches!(
                 error.code.as_str(),
-                "SIMULATION" | "FAILED_WORLD" | "INTERNAL"
+                "SIMULATION"
+                    | "FAILED_WORLD"
+                    | "INTERNAL"
+                    | "RENDER"
+                    | "GPU_UNAVAILABLE"
+                    | "OUTPUT"
             ) {
                 3
             } else {

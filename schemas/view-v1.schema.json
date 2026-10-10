@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:tomo:view:1",
+  "title": "Tomo primitive capture view v1",
+  "$comment": "Rust validation additionally checks finite numbers, nonparallel camera vectors and near < far.",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "width", "height", "camera", "colliders"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "width": {"type": "integer", "minimum": 1, "maximum": 2048},
+    "height": {"type": "integer", "minimum": 1, "maximum": 2048},
+    "colliders": {"type": "boolean"},
+    "camera": {
+      "type": "object", "additionalProperties": false,
+      "required": ["eye", "target", "up", "vertical_fov_degrees", "near", "far"],
+      "properties": {
+        "eye": {"$ref": "#/$defs/vector"}, "target": {"$ref": "#/$defs/vector"}, "up": {"$ref": "#/$defs/vector"},
+        "vertical_fov_degrees": {"type": "number", "minimum": 1, "maximum": 150},
+        "near": {"type": "number", "minimum": 0.001, "maximum": 1000000},
+        "far": {"type": "number", "minimum": 0.001, "maximum": 1000000}
+      }
+    }
+  },
+  "$defs": {"vector": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number", "minimum": -1000000, "maximum": 1000000}}}
+}

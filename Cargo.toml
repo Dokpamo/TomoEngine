@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/tomo-physics", "crates/tomo-scene", "crates/tomo-runtime", "tools/tomo-cli"]
+members = ["crates/tomo-physics", "crates/tomo-scene", "crates/tomo-runtime", "crates/tomo-render", "tools/tomo-cli"]
 resolver = "2"
 
 [workspace.package]

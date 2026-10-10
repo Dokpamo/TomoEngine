@@ -6,8 +6,8 @@
 | 단계 | 범위 | 종료 조건 | 상태 |
 | --- | --- | --- | --- |
 | M0 목표·구조 | P/R/A/T/X | 목표·의존성·품질/플랫폼 완료 기준을 문서화하고 충돌하는 AGENTS 규칙을 분리 | 이 변경에서 설정 |
-| M1 AI headless 기초 | R/T | JSON 장면 → 검증 → 고정 tick 실행 → JSON 상태/검사, 안전한 문서 patch, 실패 종료 코드, CI | 이 변경의 구현/검증 대상 |
-| M2 관찰 가능한 3D | R/T | 같은 primitive 장면을 렌더링, 카메라·디버그 collider, 지정 tick 캡처, headless 수치와 비교 | 미구현 |
+| M1 AI headless 기초 | R/T | JSON 장면 → 검증 → 고정 tick 실행 → JSON 상태/검사, 안전한 문서 patch, 실패 종료 코드, CI | 구현·검증 후 main 통합 |
+| M2 관찰 가능한 3D | R/T | 같은 primitive 장면을 렌더링, 카메라·디버그 collider, 지정 tick 캡처, headless 수치와 비교 | 이미지 캡처 구현, Metal 실기기 검증; 대화형 창/모바일 실행은 후속 |
 | M3 에셋과 캐릭터 | R/A/T | 정적 GLB/PBR 검증 후 skeleton/skinning/blending, 실제 이동/충돌, 입력 재현 테스트 | 미구현 |
 | M4 실제 게임 제작 | R/A/T | Rust 게임 SDK, 게임 UI·오디오·저장, AI 장면/코드 수정, 작업 journal·재시도·rollback, 통합 게임 테스트 | 미구현 |
 | M5 생성 서비스 | A/T | Tripo 작업/비용/라이선스/provenance 및 offline fallback, 생성 결과 검증·최적화 | 미구현 |
@@ -43,7 +43,9 @@ build/runtime에 링크하지 않는다. 목표 원본 버전 변경은 별도 �
 
 ## 다음 실행 작업
 
-M1 검증 후: M2 primitive renderer/캡처의 데이터·GPU 예산을 정의하고 작은 시각화 구현을 추가한다.
+M2 캡처 다음: 작은 desktop 입력 루프와 primitive 게임(이동·목적지·성공/실패·재시작·입력 재현)을 먼저 연결한다.
+카메라/조명/비물리 객체의 장면 표현과 CLI 실행 예산을 실제 게임 수명에서 분리하는 설계가 필요하다.
+전체 스키닝/애니메이션 구현을 기다리지 않고 이 작은 게임으로 실행/관찰/수정 흐름을 검증한다.
 P 작업의 다음 항목은 P1 원본 inventory/검증 fixture다. 렌더링 성공 때문에 이 항목을 닫지 않는다.
 긴 구현은 완료된 파일·테스트·미완료 항목을 PR에 남기고, 응답 종료 뒤 자동으로 계속 수행된다고
 약속하지 않는다. 작업 재개 시 브랜치 head와 변경 내용을 다시 읽는다.

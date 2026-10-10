@@ -77,3 +77,24 @@ jobs:
       - name: Crate boundaries and physics purity
         if: always()
         run: python3 scripts/check-policy.py
+
+  gpu-capture:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Install pinned Rust and software Vulkan adapter
+        run: |
+          rustup toolchain install 1.85.0 --profile minimal
+          sudo apt-get update
+          sudo apt-get install -y mesa-vulkan-drivers
+      - name: Fetch reviewed locked dependencies
+        run: cargo +1.85.0 fetch --locked
+      - name: Actual Vulkan pixels and capture process
+        env:
+          XDG_RUNTIME_DIR: /tmp
+        run: |
+          cargo +1.85.0 test -p tomo-render --locked --offline --test capture -- --ignored
+          cargo +1.85.0 test -p tomo-cli --features render --locked --offline --test cli -- --ignored

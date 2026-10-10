@@ -14,8 +14,10 @@ path = "src/main.rs"
 [features]
 default = []
 fma = ["tomo-runtime/fma"]
+render = ["dep:tomo-render"]
 
 [dependencies]
 tomo-scene = { path = "../../crates/tomo-scene" }
 tomo-runtime = { path = "../../crates/tomo-runtime" }
+tomo-render = { path = "../../crates/tomo-render", optional = true }
 serde_json.workspace = true
