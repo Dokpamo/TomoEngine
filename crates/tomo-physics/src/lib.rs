@@ -27,7 +27,10 @@ pub use joint::{DistanceJointSettings, JointId, SpringSettings};
 pub use math::Vec3;
 pub use rotation::{Quat, Transform};
 pub use shape::{MassProperties, Shape};
-pub use world::{BodyContact, ContactEvent, ContactEventKind, PhysicsSettings, PhysicsSystem, RayCastOptions, RayHit, StepStats};
+pub use world::{
+    BodyContact, ContactEvent, ContactEventKind, PhysicsSettings, PhysicsSystem, RayCastOptions,
+    RayHit, StepStats,
+};
 
 /// Pinned upstream commit; not a declaration of full feature compatibility.
 pub const JOLT_REFERENCE_COMMIT: &str = "e77f175595e64cb44218cc9d9d56fc365ad0e36a";

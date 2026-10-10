@@ -37,7 +37,11 @@ impl AxisConstraint {
             r2_cross,
             inv_i1_cross,
             inv_i2_cross,
-            effective_mass: if inverse_effective_mass > 0.0 { 1.0 / inverse_effective_mass } else { 0.0 },
+            effective_mass: if inverse_effective_mass > 0.0 {
+                1.0 / inverse_effective_mass
+            } else {
+                0.0
+            },
             softness: 0.0,
             bias,
             lambda: 0.0,
@@ -91,7 +95,9 @@ impl AxisConstraint {
     }
 
     pub fn solve_position(&self, a: &mut Body, b: &mut Body, error: f32, baumgarte: f32) {
-        if self.softness != 0.0 || error == 0.0 { return; }
+        if self.softness != 0.0 || error == 0.0 {
+            return;
+        }
         let lambda = -self.effective_mass * baumgarte * error;
         // Split position correction: do NOT add this impulse to real velocities.
         if a.is_dynamic() {
@@ -138,7 +144,14 @@ pub(crate) struct ContactConstraint {
 }
 
 impl ContactConstraint {
-    pub fn new(a: &Body, b: &Body, point: ContactPoint, normal: Vec3, cached: Option<&CachedContact>, config: SolverConfig) -> Self {
+    pub fn new(
+        a: &Body,
+        b: &Body,
+        point: ContactPoint,
+        normal: Vec3,
+        cached: Option<&CachedContact>,
+        config: SolverConfig,
+    ) -> Self {
         let midpoint = (point.point_a + point.point_b) * 0.5;
         let r1 = midpoint - a.pose.position;
         let r2 = midpoint - b.pose.position;
@@ -201,10 +214,18 @@ impl ContactConstraint {
     pub fn solve_position(&self, a: &mut Body, b: &mut Body, config: PositionConfig) {
         let point_a = a.pose.transform_point(self.local_a);
         let point_b = b.pose.transform_point(self.local_b);
-        let error = ((point_b - point_a).dot(self.normal.axis) + config.slop).clamp(-config.max_correction, 0.0);
+        let error = ((point_b - point_a).dot(self.normal.axis) + config.slop)
+            .clamp(-config.max_correction, 0.0);
         if error < 0.0 {
             let midpoint = (point_a + point_b) * 0.5;
-            let row = AxisConstraint::new(a, b, midpoint - a.pose.position, midpoint - b.pose.position, self.normal.axis, 0.0);
+            let row = AxisConstraint::new(
+                a,
+                b,
+                midpoint - a.pose.position,
+                midpoint - b.pose.position,
+                self.normal.axis,
+                0.0,
+            );
             row.solve_position(a, b, error, config.baumgarte);
         }
     }
@@ -231,15 +252,35 @@ fn friction_disk(first: f32, second: f32, radius: f32) -> (f32, f32) {
     }
 }
 
-pub(crate) fn distance_row(joint: &DistanceJoint, a: &Body, b: &Body, dt: f32) -> (AxisConstraint, Vec3, f32) {
+pub(crate) fn distance_row(
+    joint: &DistanceJoint,
+    a: &Body,
+    b: &Body,
+    dt: f32,
+) -> (AxisConstraint, Vec3, f32) {
     let point_a = a.pose.transform_point(joint.settings.local_anchor_a);
     let point_b = b.pose.transform_point(joint.settings.local_anchor_b);
     let delta = point_b - point_a;
     let length = delta.length();
-    let axis = if length > 1.0e-6 { delta / length } else { joint.last_axis };
+    let axis = if length > 1.0e-6 {
+        delta / length
+    } else {
+        joint.last_axis
+    };
     let error = length - joint.settings.distance;
     // AxisConstraintPart's r1 + u = point_b - center_a convention.
-    let row = AxisConstraint::new(a, b, point_b - a.pose.position, point_b - b.pose.position, axis, 0.0);
-    let row = if let Some(spring) = joint.settings.spring { row.with_spring(dt, error, spring) } else { row };
+    let row = AxisConstraint::new(
+        a,
+        b,
+        point_b - a.pose.position,
+        point_b - b.pose.position,
+        axis,
+        0.0,
+    );
+    let row = if let Some(spring) = joint.settings.spring {
+        row.with_spring(dt, error, spring)
+    } else {
+        row
+    };
     (row, axis, error)
 }

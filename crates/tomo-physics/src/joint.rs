@@ -9,7 +9,9 @@ use crate::{BodyId, Vec3};
 pub struct JointId(pub(crate) u64);
 
 impl JointId {
-    pub fn raw(self) -> u64 { self.0 }
+    pub fn raw(self) -> u64 {
+        self.0
+    }
 }
 
 /// Frequency/damping specialization of Jolt SpringPart.
@@ -44,7 +46,9 @@ impl DistanceJointSettings {
     }
 
     pub(crate) fn validate(&self) -> Result<(), PhysicsError> {
-        if self.body_a == self.body_b { return Err(PhysicsError::InvalidParameter("joint self connection")); }
+        if self.body_a == self.body_b {
+            return Err(PhysicsError::InvalidParameter("joint self connection"));
+        }
         check_range(self.distance, 0.0, 1.0e4, "joint distance")?;
         check_vector(self.local_anchor_a, 1.0e4, "joint anchor a")?;
         check_vector(self.local_anchor_b, 1.0e4, "joint anchor b")?;

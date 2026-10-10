@@ -18,12 +18,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         world.update(1.0 / 60.0)?;
         if frame % 60 == 59 {
             let body = world.body(id).ok_or("body disappeared")?;
-            println!("{:.2},{:.6},{:.6},{}", world.simulation_time(), body.position().y, body.linear_velocity().y, body.is_sleeping());
+            println!(
+                "{:.2},{:.6},{:.6},{}",
+                world.simulation_time(),
+                body.position().y,
+                body.linear_velocity().y,
+                body.is_sleeping()
+            );
         }
     }
     let body = world.body(id).ok_or("body disappeared")?;
-    assert!((body.position().y - 0.5).abs() < 0.015, "box did not settle: {body:?}");
+    assert!(
+        (body.position().y - 0.5).abs() < 0.015,
+        "box did not settle: {body:?}"
+    );
     assert!(body.is_sleeping(), "box did not sleep: {body:?}");
-    eprintln!("PASS: box fell from y=5, contacted the floor and settled. This is not full Jolt parity.");
+    eprintln!(
+        "PASS: box fell from y=5, contacted the floor and settled. This is not full Jolt parity."
+    );
     Ok(())
 }

@@ -26,7 +26,10 @@ pub struct CollisionFilter {
 
 impl Default for CollisionFilter {
     fn default() -> Self {
-        Self { membership: 1, mask: u32::MAX }
+        Self {
+            membership: 1,
+            mask: u32::MAX,
+        }
     }
 }
 
@@ -83,11 +86,17 @@ impl BodySettings {
     }
 
     pub fn fixed(shape: Shape, position: Vec3) -> Self {
-        Self { motion_type: MotionType::Static, ..Self::dynamic(shape, position, 1.0) }
+        Self {
+            motion_type: MotionType::Static,
+            ..Self::dynamic(shape, position, 1.0)
+        }
     }
 
     pub fn kinematic(shape: Shape, position: Vec3) -> Self {
-        Self { motion_type: MotionType::Kinematic, ..Self::dynamic(shape, position, 1.0) }
+        Self {
+            motion_type: MotionType::Kinematic,
+            ..Self::dynamic(shape, position, 1.0)
+        }
     }
 }
 
@@ -131,8 +140,18 @@ impl Body {
         check_range(settings.linear_damping, 0.0, 100.0, "linear damping")?;
         check_range(settings.angular_damping, 0.0, 100.0, "angular damping")?;
         check_range(settings.gravity_factor, -100.0, 100.0, "gravity factor")?;
-        check_range(settings.max_linear_velocity, 1.0e-4, 1.0e5, "max linear velocity")?;
-        check_range(settings.max_angular_velocity, 1.0e-4, 1.0e5, "max angular velocity")?;
+        check_range(
+            settings.max_linear_velocity,
+            1.0e-4,
+            1.0e5,
+            "max linear velocity",
+        )?;
+        check_range(
+            settings.max_angular_velocity,
+            1.0e-4,
+            1.0e5,
+            "max angular velocity",
+        )?;
         if settings.motion_type == MotionType::Static
             && (settings.linear_velocity != Vec3::ZERO || settings.angular_velocity != Vec3::ZERO)
         {
@@ -141,7 +160,10 @@ impl Body {
         let (inverse_mass, inverse_inertia) = if settings.motion_type == MotionType::Dynamic {
             let properties = settings.shape.mass_properties(settings.mass)?;
             let inertia = properties.inertia_diagonal;
-            (1.0 / properties.mass, Vec3::new(1.0 / inertia.x, 1.0 / inertia.y, 1.0 / inertia.z))
+            (
+                1.0 / properties.mass,
+                Vec3::new(1.0 / inertia.x, 1.0 / inertia.y, 1.0 / inertia.z),
+            )
         } else {
             (0.0, Vec3::ZERO)
         };
@@ -153,7 +175,10 @@ impl Body {
             inverse_mass,
             inverse_inertia,
             linear_velocity: clamp_length(settings.linear_velocity, settings.max_linear_velocity),
-            angular_velocity: clamp_length(settings.angular_velocity, settings.max_angular_velocity),
+            angular_velocity: clamp_length(
+                settings.angular_velocity,
+                settings.max_angular_velocity,
+            ),
             force: Vec3::ZERO,
             torque: Vec3::ZERO,
             friction: settings.friction,
@@ -173,26 +198,57 @@ impl Body {
         })
     }
 
-    pub fn id(&self) -> BodyId { self.id }
-    pub fn transform(&self) -> Transform { self.pose }
-    pub fn position(&self) -> Vec3 { self.pose.position }
-    pub fn rotation(&self) -> Quat { self.pose.rotation }
-    pub fn shape(&self) -> Shape { self.shape }
-    pub fn motion_type(&self) -> MotionType { self.motion_type }
-    pub fn linear_velocity(&self) -> Vec3 { self.linear_velocity }
-    pub fn angular_velocity(&self) -> Vec3 { self.angular_velocity }
-    pub fn inverse_mass(&self) -> f32 { self.inverse_mass }
-    pub fn is_sleeping(&self) -> bool { self.sleeping }
-    pub fn is_sensor(&self) -> bool { self.is_sensor }
-    pub fn world_bounds(&self) -> Aabb { self.shape.world_bounds(self.pose) }
-    pub fn is_dynamic(&self) -> bool { self.motion_type == MotionType::Dynamic }
+    pub fn id(&self) -> BodyId {
+        self.id
+    }
+    pub fn transform(&self) -> Transform {
+        self.pose
+    }
+    pub fn position(&self) -> Vec3 {
+        self.pose.position
+    }
+    pub fn rotation(&self) -> Quat {
+        self.pose.rotation
+    }
+    pub fn shape(&self) -> Shape {
+        self.shape
+    }
+    pub fn motion_type(&self) -> MotionType {
+        self.motion_type
+    }
+    pub fn linear_velocity(&self) -> Vec3 {
+        self.linear_velocity
+    }
+    pub fn angular_velocity(&self) -> Vec3 {
+        self.angular_velocity
+    }
+    pub fn inverse_mass(&self) -> f32 {
+        self.inverse_mass
+    }
+    pub fn is_sleeping(&self) -> bool {
+        self.sleeping
+    }
+    pub fn is_sensor(&self) -> bool {
+        self.is_sensor
+    }
+    pub fn world_bounds(&self) -> Aabb {
+        self.shape.world_bounds(self.pose)
+    }
+    pub fn is_dynamic(&self) -> bool {
+        self.motion_type == MotionType::Dynamic
+    }
 
     pub fn point_velocity(&self, world_point: Vec3) -> Vec3 {
-        self.linear_velocity + self.angular_velocity.cross(world_point - self.pose.position)
+        self.linear_velocity
+            + self
+                .angular_velocity
+                .cross(world_point - self.pose.position)
     }
 
     pub fn multiply_inverse_inertia(&self, world_vector: Vec3) -> Vec3 {
-        self.pose.rotation.rotate(self.inverse_inertia * self.pose.rotation.inverse_rotate(world_vector))
+        self.pose
+            .rotation
+            .rotate(self.inverse_inertia * self.pose.rotation.inverse_rotate(world_vector))
     }
 
     pub(crate) fn wake(&mut self) {
@@ -224,7 +280,8 @@ impl Body {
             };
             self.angular_velocity = self.pose.rotation.rotate(self.inverse_inertia * corrected);
         }
-        self.linear_velocity += dt * (gravity * self.gravity_factor + self.force * self.inverse_mass);
+        self.linear_velocity +=
+            dt * (gravity * self.gravity_factor + self.force * self.inverse_mass);
         self.angular_velocity += dt * self.multiply_inverse_inertia(self.torque);
         self.linear_velocity *= (1.0 - self.linear_damping * dt).max(0.0);
         self.angular_velocity *= (1.0 - self.angular_damping * dt).max(0.0);
@@ -246,7 +303,13 @@ impl Body {
 
     pub(crate) fn has_valid_state(&self) -> bool {
         self.pose.position.is_finite()
-            && self.pose.position.abs().to_array().into_iter().all(|v| v <= 1.0e6)
+            && self
+                .pose
+                .position
+                .abs()
+                .to_array()
+                .into_iter()
+                .all(|v| v <= 1.0e6)
             && self.pose.rotation.is_finite()
             && (self.pose.rotation.length_squared() - 1.0).abs() < 1.0e-3
             && self.linear_velocity.is_finite()
@@ -273,7 +336,11 @@ pub(crate) fn clamp_length(vector: Vec3, max_length: f32) -> Vec3 {
     }
 }
 
-pub(crate) fn check_vector(vector: Vec3, bound: f32, name: &'static str) -> Result<(), PhysicsError> {
+pub(crate) fn check_vector(
+    vector: Vec3,
+    bound: f32,
+    name: &'static str,
+) -> Result<(), PhysicsError> {
     if vector.is_finite() && vector.abs().to_array().into_iter().all(|v| v <= bound) {
         Ok(())
     } else {
@@ -281,7 +348,12 @@ pub(crate) fn check_vector(vector: Vec3, bound: f32, name: &'static str) -> Resu
     }
 }
 
-pub(crate) fn check_range(value: f32, min: f32, max: f32, name: &'static str) -> Result<(), PhysicsError> {
+pub(crate) fn check_range(
+    value: f32,
+    min: f32,
+    max: f32,
+    name: &'static str,
+) -> Result<(), PhysicsError> {
     if value.is_finite() && (min..=max).contains(&value) {
         Ok(())
     } else {
@@ -291,7 +363,10 @@ pub(crate) fn check_range(value: f32, min: f32, max: f32, name: &'static str) ->
 
 pub(crate) fn checked_transform(transform: Transform) -> Result<Transform, PhysicsError> {
     check_vector(transform.position, 1.0e6, "position")?;
-    let rotation = transform.rotation.normalized().ok_or(PhysicsError::InvalidParameter("rotation"))?;
+    let rotation = transform
+        .rotation
+        .normalized()
+        .ok_or(PhysicsError::InvalidParameter("rotation"))?;
     Ok(Transform::new(transform.position, rotation))
 }
 
@@ -319,11 +394,15 @@ impl BodyArena {
             if index > BodyId::MAX_INDEX as usize {
                 return Err(PhysicsError::BodyCapacityExceeded);
             }
-            self.slots.push(Slot { sequence: 0, body: None });
+            self.slots.push(Slot {
+                sequence: 0,
+                body: None,
+            });
             index
         };
         let slot = &mut self.slots[index];
-        let id = BodyId::new(index as u32, slot.sequence).ok_or(PhysicsError::BodyCapacityExceeded)?;
+        let id =
+            BodyId::new(index as u32, slot.sequence).ok_or(PhysicsError::BodyCapacityExceeded)?;
         body.id = id;
         slot.body = Some(body);
         self.count += 1;
@@ -331,15 +410,25 @@ impl BodyArena {
     }
 
     pub fn get(&self, id: BodyId) -> Option<&Body> {
-        self.slots.get(id.index() as usize)?.body.as_ref().filter(|body| body.id == id)
+        self.slots
+            .get(id.index() as usize)?
+            .body
+            .as_ref()
+            .filter(|body| body.id == id)
     }
 
     pub fn get_mut(&mut self, id: BodyId) -> Option<&mut Body> {
-        self.slots.get_mut(id.index() as usize)?.body.as_mut().filter(|body| body.id == id)
+        self.slots
+            .get_mut(id.index() as usize)?
+            .body
+            .as_mut()
+            .filter(|body| body.id == id)
     }
 
     pub fn remove(&mut self, id: BodyId) -> Option<Body> {
-        if self.get(id).is_none() { return None; }
+        if self.get(id).is_none() {
+            return None;
+        }
         let index = id.index() as usize;
         let slot = &mut self.slots[index];
         let removed = slot.body.take();
@@ -354,7 +443,9 @@ impl BodyArena {
     pub fn pair_mut(&mut self, a: BodyId, b: BodyId) -> Option<(&mut Body, &mut Body)> {
         let ai = a.index() as usize;
         let bi = b.index() as usize;
-        if ai == bi || ai >= self.slots.len() || bi >= self.slots.len() { return None; }
+        if ai == bi || ai >= self.slots.len() || bi >= self.slots.len() {
+            return None;
+        }
         let (first, second) = if ai < bi {
             let (left, right) = self.slots.split_at_mut(bi);
             (left[ai].body.as_mut()?, right[0].body.as_mut()?)
@@ -362,7 +453,11 @@ impl BodyArena {
             let (left, right) = self.slots.split_at_mut(ai);
             (right[0].body.as_mut()?, left[bi].body.as_mut()?)
         };
-        if first.id == a && second.id == b { Some((first, second)) } else { None }
+        if first.id == a && second.id == b {
+            Some((first, second))
+        } else {
+            None
+        }
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &Body> {
@@ -373,6 +468,10 @@ impl BodyArena {
         self.slots.iter_mut().filter_map(|slot| slot.body.as_mut())
     }
 
-    pub fn len(&self) -> usize { self.count }
-    pub fn slot_count(&self) -> usize { self.slots.len() }
+    pub fn len(&self) -> usize {
+        self.count
+    }
+    pub fn slot_count(&self) -> usize {
+        self.slots.len()
+    }
 }

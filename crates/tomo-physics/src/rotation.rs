@@ -87,7 +87,11 @@ impl Quat {
     }
 
     pub fn axes(self) -> [Vec3; 3] {
-        [self.rotate(Vec3::X), self.rotate(Vec3::Y), self.rotate(Vec3::Z)]
+        [
+            self.rotate(Vec3::X),
+            self.rotate(Vec3::Y),
+            self.rotate(Vec3::Z),
+        ]
     }
 
     /// Jolt Body::AddRotationStep: apply a world-space angular displacement.
@@ -109,7 +113,12 @@ impl Mul for Quat {
 
     /// Parenthesization follows the upstream scalar multiplication kernel.
     fn mul(self, rhs: Self) -> Self {
-        let Self { x: a, y: b, z: c, w: d } = self;
+        let Self {
+            x: a,
+            y: b,
+            z: c,
+            w: d,
+        } = self;
         let Self { x, y, z, w } = rhs;
         Self::new(
             (a * w + b * z) + (d * x - c * y),

@@ -8,11 +8,11 @@
 //! selection, polygon clipping and reduction are Tomo-specific. This module is
 //! NOT a port of Jolt's general convex GJK/EPA/CollideConvexVsConvex pipeline.
 
+use crate::Vec3;
 use crate::body::{check_range, checked_transform};
 use crate::error::PhysicsError;
 use crate::rotation::Transform;
 use crate::shape::{Shape, ShapeKind, axis, lowest_axis};
-use crate::Vec3;
 
 /// A normal points from body A to body B. Negative separation means penetration.
 #[derive(Clone, Copy, Debug)]
@@ -56,8 +56,12 @@ pub(crate) fn collide(
     margin: f32,
 ) -> Option<ContactManifold> {
     match (a.kind, b.kind) {
-        (ShapeKind::Sphere(ra), ShapeKind::Sphere(rb)) => sphere_sphere(pa.position, ra, pb.position, rb, margin),
-        (ShapeKind::Sphere(radius), ShapeKind::Box(half)) => sphere_box(pa.position, radius, BoxFrame::new(pb, half), margin),
+        (ShapeKind::Sphere(ra), ShapeKind::Sphere(rb)) => {
+            sphere_sphere(pa.position, ra, pb.position, rb, margin)
+        }
+        (ShapeKind::Sphere(radius), ShapeKind::Box(half)) => {
+            sphere_box(pa.position, radius, BoxFrame::new(pb, half), margin)
+        }
         (ShapeKind::Box(half), ShapeKind::Sphere(radius)) => {
             sphere_box(pb.position, radius, BoxFrame::new(pa, half), margin).map(|mut manifold| {
                 manifold.normal = -manifold.normal;
@@ -67,7 +71,9 @@ pub(crate) fn collide(
                 manifold
             })
         }
-        (ShapeKind::Box(ha), ShapeKind::Box(hb)) => box_box(BoxFrame::new(pa, ha), BoxFrame::new(pb, hb), margin),
+        (ShapeKind::Box(ha), ShapeKind::Box(hb)) => {
+            box_box(BoxFrame::new(pa, ha), BoxFrame::new(pb, hb), margin)
+        }
     }
 }
 
@@ -75,11 +81,20 @@ fn sphere_sphere(a: Vec3, ra: f32, b: Vec3, rb: f32, margin: f32) -> Option<Cont
     let delta = b - a;
     let squared = delta.length_squared();
     let radius_sum = ra + rb;
-    if squared > (radius_sum + margin) * (radius_sum + margin) { return None; }
-    let normal = if squared > 0.0 { delta / squared.sqrt() } else { Vec3::X };
+    if squared > (radius_sum + margin) * (radius_sum + margin) {
+        return None;
+    }
+    let normal = if squared > 0.0 {
+        delta / squared.sqrt()
+    } else {
+        Vec3::X
+    };
     Some(ContactManifold {
         normal,
-        points: vec![ContactPoint { point_a: a + normal * ra, point_b: b - normal * rb }],
+        points: vec![ContactPoint {
+            point_a: a + normal * ra,
+            point_b: b - normal * rb,
+        }],
     })
 }
 
@@ -89,7 +104,9 @@ fn sphere_box(center: Vec3, radius: f32, frame: BoxFrame, margin: f32) -> Option
     let delta = closest - local;
     let squared = delta.length_squared();
     let (normal_local, box_point) = if squared > 0.0 {
-        if squared > (radius + margin) * (radius + margin) { return None; }
+        if squared > (radius + margin) * (radius + margin) {
+            return None;
+        }
         (delta / squared.sqrt(), closest)
     } else {
         // An enclosed sphere must be pushed toward the closest face, not toward
@@ -118,7 +135,11 @@ struct BoxFrame {
 
 impl BoxFrame {
     fn new(pose: Transform, half: Vec3) -> Self {
-        Self { pose, half, axes: pose.rotation.axes() }
+        Self {
+            pose,
+            half,
+            axes: pose.rotation.axes(),
+        }
     }
 
     fn projection_radius(self, direction: Vec3) -> f32 {
@@ -134,14 +155,20 @@ impl BoxFrame {
         let v = (index + 2) % 3;
         let du = self.axes[u] * self.half[u];
         let dv = self.axes[v] * self.half[v];
-        vec![center - du - dv, center + du - dv, center + du + dv, center - du + dv]
+        vec![
+            center - du - dv,
+            center + du - dv,
+            center + du + dv,
+            center - du + dv,
+        ]
     }
 
     fn support_edge(self, index: usize, direction: Vec3) -> (Vec3, Vec3) {
         let mut center = self.pose.position;
         for other in 0..3 {
             if other != index {
-                center += self.axes[other] * self.half[other] * sign(self.axes[other].dot(direction));
+                center +=
+                    self.axes[other] * self.half[other] * sign(self.axes[other].dot(direction));
             }
         }
         let half_edge = self.axes[index] * self.half[index];
@@ -168,11 +195,16 @@ fn box_box(a: BoxFrame, b: BoxFrame, margin: f32) -> Option<ContactManifold> {
     let mut test_axis = |candidate: Vec3, feature: Feature, edge: bool| -> bool {
         let squared = candidate.length_squared();
         // Near-parallel edge axes cannot be normalized reliably.
-        if squared < 1.0e-12 { return true; }
+        if squared < 1.0e-12 {
+            return true;
+        }
         let candidate = candidate / squared.sqrt();
         let center_distance = delta.dot(candidate);
-        let separation = center_distance.abs() - a.projection_radius(candidate) - b.projection_radius(candidate);
-        if separation > margin { return false; }
+        let separation =
+            center_distance.abs() - a.projection_radius(candidate) - b.projection_radius(candidate);
+        if separation > margin {
+            return false;
+        }
         // Prefer face contacts in near-ties to avoid unstable edge/face switching.
         let preference = if edge { 1.0e-4 } else { 0.0 };
         if separation > best_separation + preference {
@@ -183,21 +215,29 @@ fn box_box(a: BoxFrame, b: BoxFrame, margin: f32) -> Option<ContactManifold> {
         true
     };
     for index in 0..3 {
-        if !test_axis(a.axes[index], Feature::FaceA(index), false) { return None; }
+        if !test_axis(a.axes[index], Feature::FaceA(index), false) {
+            return None;
+        }
     }
     for index in 0..3 {
-        if !test_axis(b.axes[index], Feature::FaceB(index), false) { return None; }
+        if !test_axis(b.axes[index], Feature::FaceB(index), false) {
+            return None;
+        }
     }
     for ai in 0..3 {
         for bi in 0..3 {
-            if !test_axis(a.axes[ai].cross(b.axes[bi]), Feature::Edge(ai, bi), true) { return None; }
+            if !test_axis(a.axes[ai].cross(b.axes[bi]), Feature::Edge(ai, bi), true) {
+                return None;
+            }
         }
     }
     let mut points = match selected {
         Feature::FaceA(index) => face_contacts(a, b, index, normal, margin),
         Feature::FaceB(index) => {
             let mut points = face_contacts(b, a, index, -normal, margin);
-            for point in &mut points { std::mem::swap(&mut point.point_a, &mut point.point_b); }
+            for point in &mut points {
+                std::mem::swap(&mut point.point_a, &mut point.point_b);
+            }
             points
         }
         Feature::Edge(ai, bi) => {
@@ -208,12 +248,20 @@ fn box_box(a: BoxFrame, b: BoxFrame, margin: f32) -> Option<ContactManifold> {
         }
     };
     points.retain(|point| point.separation(normal) <= margin + 1.0e-5);
-    if points.is_empty() { return None; }
+    if points.is_empty() {
+        return None;
+    }
     reduce_points(&mut points, normal);
     Some(ContactManifold { normal, points })
 }
 
-fn face_contacts(reference: BoxFrame, incident: BoxFrame, index: usize, normal: Vec3, margin: f32) -> Vec<ContactPoint> {
+fn face_contacts(
+    reference: BoxFrame,
+    incident: BoxFrame,
+    index: usize,
+    normal: Vec3,
+    margin: f32,
+) -> Vec<ContactPoint> {
     let face_center = reference.pose.position
         + reference.axes[index] * reference.half[index] * sign(reference.axes[index].dot(normal));
     let mut incident_index = 0;
@@ -225,16 +273,31 @@ fn face_contacts(reference: BoxFrame, incident: BoxFrame, index: usize, normal: 
     let mut polygon = incident.face(incident_index, -normal);
     for side in 0..3 {
         if side != index {
-            polygon = clip_polygon(polygon, face_center, reference.axes[side], reference.half[side]);
-            polygon = clip_polygon(polygon, face_center, -reference.axes[side], reference.half[side]);
+            polygon = clip_polygon(
+                polygon,
+                face_center,
+                reference.axes[side],
+                reference.half[side],
+            );
+            polygon = clip_polygon(
+                polygon,
+                face_center,
+                -reference.axes[side],
+                reference.half[side],
+            );
         }
     }
     let mut result = Vec::new();
     for point_b in polygon {
         let separation = (point_b - face_center).dot(normal);
         if separation <= margin + 1.0e-5 {
-            let contact = ContactPoint { point_a: point_b - normal * separation, point_b };
-            if result.iter().all(|existing: &ContactPoint| (existing.point_b - point_b).length_squared() > 1.0e-12) {
+            let contact = ContactPoint {
+                point_a: point_b - normal * separation,
+                point_b,
+            };
+            if result.iter().all(|existing: &ContactPoint| {
+                (existing.point_b - point_b).length_squared() > 1.0e-12
+            }) {
                 result.push(contact);
             }
         }
@@ -244,7 +307,9 @@ fn face_contacts(reference: BoxFrame, incident: BoxFrame, index: usize, normal: 
 
 /// Sutherland-Hodgman clipping against dot(point - origin, normal) <= offset.
 fn clip_polygon(input: Vec<Vec3>, origin: Vec3, normal: Vec3, offset: f32) -> Vec<Vec3> {
-    let Some(&last) = input.last() else { return input; };
+    let Some(&last) = input.last() else {
+        return input;
+    };
     let mut output = Vec::with_capacity(input.len() + 1);
     let mut previous = last;
     let mut previous_distance = (previous - origin).dot(normal) - offset;
@@ -254,7 +319,9 @@ fn clip_polygon(input: Vec<Vec3>, origin: Vec3, normal: Vec3, offset: f32) -> Ve
             let fraction = previous_distance / (previous_distance - distance);
             output.push(previous + (current - previous) * fraction);
         }
-        if distance <= 0.0 { output.push(current); }
+        if distance <= 0.0 {
+            output.push(current);
+        }
         previous = current;
         previous_distance = distance;
     }
@@ -273,7 +340,9 @@ fn closest_segments(a0: Vec3, a1: Vec3, b0: Vec3, b1: Vec3) -> (Vec3, Vec3) {
     let denominator = aa * bb - ab * ab;
     let mut s = if denominator > 1.0e-8 * aa * bb {
         ((ab * br - ar * bb) / denominator).clamp(0.0, 1.0)
-    } else { 0.0 };
+    } else {
+        0.0
+    };
     let mut t = (ab * s + br) / bb;
     if t < 0.0 {
         t = 0.0;
@@ -286,20 +355,35 @@ fn closest_segments(a0: Vec3, a1: Vec3, b0: Vec3, b1: Vec3) -> (Vec3, Vec3) {
 }
 
 fn reduce_points(points: &mut Vec<ContactPoint>, normal: Vec3) {
-    if points.len() <= 4 { return; }
+    if points.len() <= 4 {
+        return;
+    }
     let mut selected = Vec::with_capacity(4);
-    let deepest = (0..points.len()).min_by(|&a, &b| points[a].separation(normal).total_cmp(&points[b].separation(normal))).unwrap();
+    let deepest = (0..points.len())
+        .min_by(|&a, &b| {
+            points[a]
+                .separation(normal)
+                .total_cmp(&points[b].separation(normal))
+        })
+        .unwrap();
     selected.push(points.remove(deepest));
     while selected.len() < 4 {
         let score = |point: ContactPoint| -> f32 {
             if selected.len() == 2 {
                 let edge = selected[1].point_a - selected[0].point_a;
-                edge.cross(point.point_a - selected[0].point_a).dot(normal).abs()
+                edge.cross(point.point_a - selected[0].point_a)
+                    .dot(normal)
+                    .abs()
             } else {
-                selected.iter().map(|s| (point.point_a - s.point_a).length_squared()).fold(f32::MAX, f32::min)
+                selected
+                    .iter()
+                    .map(|s| (point.point_a - s.point_a).length_squared())
+                    .fold(f32::MAX, f32::min)
             }
         };
-        let next = (0..points.len()).max_by(|&a, &b| score(points[a]).total_cmp(&score(points[b]))).unwrap();
+        let next = (0..points.len())
+            .max_by(|&a, &b| score(points[a]).total_cmp(&score(points[b])))
+            .unwrap();
         selected.push(points.remove(next));
     }
     *points = selected;

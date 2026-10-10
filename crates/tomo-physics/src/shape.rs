@@ -33,7 +33,9 @@ impl Shape {
         if !valid_dimension(radius) {
             return Err(PhysicsError::InvalidParameter("sphere radius"));
         }
-        Ok(Self { kind: ShapeKind::Sphere(radius) })
+        Ok(Self {
+            kind: ShapeKind::Sphere(radius),
+        })
     }
 
     /// Sharp-edged box. Half extents must each be in [1e-4, 1e4].
@@ -41,7 +43,9 @@ impl Shape {
         if !half_extent.to_array().into_iter().all(valid_dimension) {
             return Err(PhysicsError::InvalidParameter("box half extent"));
         }
-        Ok(Self { kind: ShapeKind::Box(half_extent) })
+        Ok(Self {
+            kind: ShapeKind::Box(half_extent),
+        })
     }
 
     pub fn half_extent(self) -> Vec3 {
@@ -78,15 +82,25 @@ impl Shape {
                 let size = 2.0 * half;
                 let squared = size * size;
                 (mass / 12.0)
-                    * Vec3::new(squared.y + squared.z, squared.x + squared.z, squared.x + squared.y)
+                    * Vec3::new(
+                        squared.y + squared.z,
+                        squared.x + squared.z,
+                        squared.x + squared.y,
+                    )
             }
         };
         if !inertia_diagonal.is_finite()
-            || inertia_diagonal.to_array().into_iter().any(|v| v <= f32::MIN_POSITIVE)
+            || inertia_diagonal
+                .to_array()
+                .into_iter()
+                .any(|v| v <= f32::MIN_POSITIVE)
         {
             return Err(PhysicsError::InvalidParameter("inertia"));
         }
-        Ok(MassProperties { mass, inertia_diagonal })
+        Ok(MassProperties {
+            mass,
+            inertia_diagonal,
+        })
     }
 
     /// Requires a finite transform and unit rotation (validated by PhysicsSystem).
@@ -105,14 +119,20 @@ impl Shape {
         let local_origin = transform.inverse_transform_point(origin);
         let local_direction = transform.rotation.inverse_rotate(direction);
         match self.kind {
-            ShapeKind::Sphere(radius) => ray_sphere(local_origin, local_direction, Vec3::ZERO, radius),
+            ShapeKind::Sphere(radius) => {
+                ray_sphere(local_origin, local_direction, Vec3::ZERO, radius)
+            }
             ShapeKind::Box(half) => {
                 let fraction = ray_aabb(
                     local_origin,
                     &RayInvDirection::new(local_direction),
                     Aabb::new(-half, half),
                 );
-                if fraction == NO_HIT { NO_HIT } else { fraction.max(0.0) }
+                if fraction == NO_HIT {
+                    NO_HIT
+                } else {
+                    fraction.max(0.0)
+                }
             }
         }
     }
