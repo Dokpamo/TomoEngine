@@ -1,4 +1,4 @@
-name: Rust physics
+name: Rust engine
 
 on:
   push:
@@ -29,11 +29,13 @@ jobs:
             toolchain: stable
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           persist-credentials: false
       - name: Install Rust
         run: rustup toolchain install ${{ matrix.toolchain }} --profile minimal
+      - name: Fetch reviewed locked dependencies
+        run: cargo +${{ matrix.toolchain }} fetch --locked
       - name: Default tests
         run: cargo +${{ matrix.toolchain }} test --workspace --locked --offline
       - name: FMA tests
@@ -42,22 +44,26 @@ jobs:
         run: cargo +${{ matrix.toolchain }} test --workspace --release --locked --offline
       - name: Release FMA tests
         run: cargo +${{ matrix.toolchain }} test --workspace --release --all-features --locked --offline
-      - name: Query example
+      - name: Physics query example
         run: cargo +${{ matrix.toolchain }} run -p tomo-physics --example raycast --locked --offline
-      - name: Falling box
+      - name: Physics falling box
         run: cargo +${{ matrix.toolchain }} run -p tomo-physics --example falling_box --release --locked --offline
-      - name: Stack
+      - name: Physics stack
         run: cargo +${{ matrix.toolchain }} run -p tomo-physics --example stack --release --locked --offline
+      - name: Actual JSON scene acceptance
+        run: cargo +${{ matrix.toolchain }} run -q -p tomo-cli --locked --offline -- run examples/scenes/falling_box.scene.json --ticks 600
 
   quality:
     timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           persist-credentials: false
       - name: Install pinned quality tools
         run: rustup toolchain install 1.85.0 --profile minimal --component rustfmt --component clippy
+      - name: Fetch reviewed locked dependencies
+        run: cargo +1.85.0 fetch --locked
       - name: Format
         run: cargo +1.85.0 fmt --all -- --check
       - name: Clippy
@@ -68,13 +74,6 @@ jobs:
         env:
           RUSTDOCFLAGS: -D warnings
         run: cargo +1.85.0 doc --workspace --no-deps --all-features --locked --offline
-      - name: Pure Rust and zero dependency policy
+      - name: Crate boundaries and physics purity
         if: always()
-        shell: bash
-        run: |
-          set -euo pipefail
-          test "$(grep -c '^\[\[package\]\]' Cargo.lock)" -eq 1
-          ! grep -q '^source = ' Cargo.lock
-          test -z "$(find crates -type f \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.h' -o -name '*.hpp' -o -name '*.a' -o -name '*.lib' -o -name '*.so' -o -name '*.dll' -o -name '*.dylib' -o -name 'build.rs' \) -print)"
-          grep -Fx '#![forbid(unsafe_code)]' crates/tomo-physics/src/lib.rs
-          cargo +1.85.0 tree --workspace --locked --offline --edges normal,build,dev
+        run: python3 scripts/check-policy.py

@@ -1,88 +1,90 @@
 # TomoEngine
 
-Jolt Physics를 C++ 바인딩 없이 **100% Rust로 직접 이식**하는 프로젝트입니다.
+**AI가 제작·검증할 수 있는 크로스플랫폼 Rust 3D 게임엔진**을 목표로 합니다.
+그 안의 Tomo Physics는 Jolt Physics를 C++ 바인딩 없이 Rust로 직접 이식하는
+독립 프로젝트로 유지합니다.
 
-> **현재: 구·상자를 지원하는 초기 3D 강체 런타임이 동작합니다.**
-> 중력, 충돌 반응, 회전, 마찰, 반발, 수면, 거리 관절을 연결했습니다.
-> **Jolt 전체 기능의 완전 이식 또는 원본과의 동등성이 검증된 상태는 아닙니다.**
+> 현재 구현은 **초기 primitive 물리 런타임 + AI용 headless 장면 도구**입니다.
+> 3D 렌더러, GLB/스키닝, Tripo 연동, 자율 AI 에이전트, 모바일/콘솔 게임 빌드는
+> 아직 없습니다. Jolt 전체 기능·수치·성능 동등성도 아직 달성하지 않았습니다.
 
-구현은 [작업 브랜치](https://github.com/Dokpamo/TomoEngine/tree/feat/jolt-rust-foundation)와
-[PR #1](https://github.com/Dokpamo/TomoEngine/pull/1)에 있습니다. PR이 병합되기 전에는
-`main`의 파일 목록만으로 작업 브랜치의 구현 여부를 판단할 수 없습니다.
+## 시작할 문서
 
-## 바로 실행
+- [최종 목표와 큰 하위 목표](docs/PROJECT.md)
+- [구조와 의존성·보안 경계](docs/ARCHITECTURE.md)
+- [단계별 완료 기준과 다음 작업](docs/ROADMAP.md)
+- [실제로 실행 가능한 CLI](docs/CLI.md)
+- [별도 유지하는 Jolt 이식 현황](docs/PORTING.md)
+
+## 현재 구조
+
+```text
+crates/
+  tomo-physics/     기존 독립 물리 코어: 외부 Cargo 의존성 0
+  tomo-scene/       버전 있는 JSON 장면·검증·문서 patch
+  tomo-runtime/     장면 → physics, 고정 tick, 상태·검사 보고
+ tools/
+  tomo-cli/        AI/사람이 호출하는 Rust tomo 명령
+schemas/           Scene/Patch v1 구조 명세
+examples/          낙하 장면, 의도적 실패 장면, 수정 요청
+scripts/           의존성·계층 정책 검사
+```
+
+렌더러·에셋 crate는 후속 설계이며 현재 빈 구현을 만든 상태가 아닙니다.
+
+## 작업 브랜치
+
+게임엔진 구조/도구 작업: `feat/ai-first-engine-foundation`.
+기존 물리 PR #1: `feat/jolt-rust-foundation`.
+새 작업은 기존 물리 커밋 `15d076c` 위에 쌓았습니다. `main`에는 자동 병합하지 않습니다.
+기본 브랜치만 보고 이 작업 브랜치의 구현이 없다고 판단하지 않도록 주의하세요.
 
 ```sh
-git clone --branch feat/jolt-rust-foundation https://github.com/Dokpamo/TomoEngine.git
+git clone --branch feat/ai-first-engine-foundation https://github.com/Dokpamo/TomoEngine.git
 cd TomoEngine
-cargo run -p tomo-physics --example falling_box --release --locked --offline
-cargo run -p tomo-physics --example stack --release --locked --offline
+cargo fetch --locked
+cargo run -q -p tomo-cli --locked --offline -- capabilities
+cargo run -q -p tomo-cli --locked --offline -- scene validate examples/scenes/falling_box.scene.json
+cargo run -q -p tomo-cli --locked --offline -- run examples/scenes/falling_box.scene.json --ticks 600
 ```
 
-두 예제는 화면을 그리지 않는 **headless 시뮬레이션**입니다. 렌더러는 포함하지 않습니다.
-`falling_box`는 높이 5에서 떨어진 상자가 실제 정적 상자 형상의 바닥에 닿아 멈추는지,
-`stack`은 상자 5개가 쌓인 상태에서 안정적으로 정지하는지 assertion으로 검사합니다.
-예제 출력을 미리 저장해 재생하거나 바닥 높이를 하드코딩해 고정시키는 방식이 아닙니다.
+Rustup과 `rust-toolchain.toml`의 Rust 1.85.0이 필요합니다. 생성 서비스 API 키는 필요 없습니다.
+JSON 라이브러리의 최초 다운로드 이후 Cargo offline 실행이 가능합니다.
 
-Rustup 및 `rust-toolchain.toml`에 지정된 Rust 1.85.0이 필요합니다. `--offline`은
-Cargo 의존성 해석에 대한 옵션이며 toolchain 최초 설치에는 다운로드가 필요합니다.
+## 첫 구현이 하는 일
 
-## 실제 구현 범위
+엄격한 JSON 파싱 → 단위/ID/수치/참조 검사 → 실제 물리 world 구성 → 고정 tick 실행 →
+정렬된 위치/회전/속도/sleep 상태와 최종 위치·속도 검사 결과를 JSON으로 반환합니다.
 
-| 영역 | 현재 구현 |
-| --- | --- |
-| 수학·기하 | scalar Vec3, FindRoot, AABB, ray queries, Quat, Transform |
-| 형상 | 구, 회전 가능한 날카로운 모서리 상자, 질량·관성·경계 계산 |
-| 객체 | Static / Kinematic / Dynamic, 슬롯·세대 ID, 힘·토크·충격량 |
-| 충돌 후보 | 단일 축 sweep-and-prune, 양방향 충돌 필터 |
-| 정밀 충돌 | 구–구, 구–상자, 상자–상자 SAT 및 접촉점 구성 |
-| 솔버 | 접촉 속도·위치 보정, 마찰, 반발, warm starting |
-| 실행 | PhysicsSystem, substeps, 회전·중력·감쇠, 연결된 객체의 수면·깨우기 |
-| 관절 | 고정 거리 제약 및 주파수·감쇠 기반 거리 스프링 |
-| 조회·이벤트 | world ray cast, 센서, 접촉 시작·유지·종료 이벤트 |
+낙하 예제는 높이 5의 상자가 실제 정적 상자 바닥에 충돌해 멈추는지 검사합니다.
+바닥 없는 실패 예제는 검사 실패/종료 코드 1을 확인합니다. 저장된 결과를 재생하지 않습니다.
+scene patch는 revision을 검사하고 전체 후보를 검증한 뒤 새 JSON을 출력합니다.
+원본 파일을 수정하지 않으며 실행 중 physics rollback 기능으로 오해하면 안 됩니다.
 
-위 표는 **동작하는 부분 구현의 범위**입니다. 일부 수치 커널은 Jolt 소스 기반이고,
-현재 broad phase, primitive collision, 저장소, 이벤트 및 실행 조립부는 자체 구현입니다.
-이를 Jolt의 전체 클래스나 병렬 PhysicsSystem을 그대로 이식한 것으로 계산하지 않습니다.
+## 기존 Physics의 범위
 
-**아직 없는 기능:** GJK/EPA, capsule/convex/mesh/heightfield/compound shape의 완전한
-지원, CCD, Jolt의 broad-phase tree·병렬 Job System, 전체 관절·모터, 캐릭터, 차량,
-ragdoll, soft bodies, 전체 직렬화 및 기준 버전의 나머지 기능.
+구·회전 상자, Static/Kinematic/Dynamic, 질량·관성, 힘·토크·충격량, 접촉·마찰·반발,
+수면·깨우기, 거리 관절·스프링, 센서/이벤트/ray가 있는 초기 단일 스레드 런타임입니다.
+일부 수치 커널은 Jolt 소스 기반이고 primitive 충돌/공간 탐색/조립에는 자체 구현이 있습니다.
+GJK/EPA, 전체 형상, CCD, Jolt 병렬 Job System, 전체 관절·캐릭터·차량·soft bodies 등과
+원본 differential/performance/determinism 검증은 남아 있습니다. 이슈 #2에서 별도 추적합니다.
 
-세부 범위·차이·검증 한계는 [PORTING.md](docs/PORTING.md)에 기록합니다.
-
-## 순수 Rust 정책
-
-현재 엔진 crate의 외부 Cargo dependency는 0개입니다. C/C++ 소스, `build.rs`, FFI,
-Jolt 네이티브 라이브러리, Rapier 대체 의존성 없이 `#![forbid(unsafe_code)]`를 사용합니다.
-이 정책은 프로젝트 엔진 코드와 Cargo 의존성에 관한 것이며 Rust 표준 라이브러리 내부,
-컴파일러나 운영체제까지 모두 Rust로 재작성했다는 뜻이 아닙니다.
-
-## 검증
+## 검증 및 지원 표기
 
 ```sh
-cargo fmt --all -- --check
 cargo test --workspace --locked --offline
-cargo test --workspace --all-features --locked --offline
-cargo test --workspace --release --locked --offline
-cargo test --workspace --release --all-features --locked --offline
+cargo test --workspace --all-features --release --locked --offline
+cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features --locked --offline -- -D warnings
-cargo doc --workspace --no-deps --all-features --locked --offline
+python3 scripts/check-policy.py
 ```
 
-[GitHub Actions](https://github.com/Dokpamo/TomoEngine/actions)에서 **대상 커밋의 실제
-검사 결과**를 확인해야 합니다. 예전 커밋의 성공, CI 파일의 존재, 테스트 수만으로
-최신 코드의 성공이나 전체 Jolt 호환성을 주장하지 않습니다.
+완료 여부는 최신 커밋의 실제 [Actions](https://github.com/Dokpamo/TomoEngine/actions)
+결과를 확인해야 합니다. Headless CI가 성공해도 GPU 렌더링/모바일/콘솔 지원을 증명하지 않습니다.
 
-분석적인 기대값, 고정 seed 불변조건, 물리 장면 회귀, API 경계 검사를 포함합니다.
-원본 C++ 전체와의 differential testing, 성능 동등성, 플랫폼 간 bit-identical
-결정론은 아직 검증하지 않았습니다. 동일 프로세스 내 재실행 테스트와는 별개입니다.
+## 라이선스
 
-## 원본 및 라이선스
-
-- 기준: Jolt Physics `v5.6.0`, commit `e77f175595e64cb44218cc9d9d56fc365ad0e36a`
-- foundation 원본 추적: [upstream/jolt.toml](upstream/jolt.toml)
-- 원본: https://github.com/jrouwe/JoltPhysics/tree/e77f175595e64cb44218cc9d9d56fc365ad0e36a
-- MIT 고지: [LICENSE](LICENSE), [Jolt-MIT.txt](LICENSES/Jolt-MIT.txt)
-
-공식 Jolt 프로젝트와 별개인 초기 이식 프로젝트입니다.
+MIT. Jolt 기준 `v5.6.0` / `e77f175595e64cb44218cc9d9d56fc365ad0e36a`.
+원저작권 고지는 LICENSE와 LICENSES/Jolt-MIT.txt, foundation 추적은 upstream/jolt.toml에 있습니다.
+공식 Jolt와 별개인 프로젝트입니다. Physics는 여전히 무바인딩·무FFI·외부 의존성 0이며,
+serde/serde_json과 그 전이 의존성은 상위 데이터/도구 계층에만 사용합니다.

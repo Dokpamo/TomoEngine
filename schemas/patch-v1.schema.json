@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:tomo:patch:1",
+  "title": "Tomo scene document patch v1",
+  "$comment": "Resolve urn:tomo:scene:1 using scene-v1.schema.json. Full candidate validation and revision checks occur in the Rust API. This is not JSON Patch/RFC 6902 or a runtime rollback format.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "expected_revision", "operations"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "expected_revision": {"type": "integer", "minimum": 0, "maximum": 18446744073709551615},
+    "operations": {"type": "array", "minItems": 1, "maxItems": 256, "items": {"$ref": "#/$defs/operation"}}
+  },
+  "$defs": {
+    "operation": {
+      "oneOf": [
+        {"type": "object", "additionalProperties": false, "required": ["op", "body"], "properties": {"op": {"const": "add"}, "body": {"$ref": "urn:tomo:scene:1#/$defs/body"}}},
+        {"type": "object", "additionalProperties": false, "required": ["op", "id"], "properties": {"op": {"const": "remove"}, "id": {"$ref": "urn:tomo:scene:1#/$defs/id"}}},
+        {"type": "object", "additionalProperties": false, "required": ["op", "id", "position", "rotation"], "properties": {"op": {"const": "set_transform"}, "id": {"$ref": "urn:tomo:scene:1#/$defs/id"}, "position": {"$ref": "urn:tomo:scene:1#/$defs/vector3"}, "rotation": {"$ref": "urn:tomo:scene:1#/$defs/quaternion"}}},
+        {"type": "object", "additionalProperties": false, "required": ["op", "id", "friction", "restitution"], "properties": {"op": {"const": "set_material"}, "id": {"$ref": "urn:tomo:scene:1#/$defs/id"}, "friction": {"type": "number", "minimum": 0, "maximum": 100}, "restitution": {"type": "number", "minimum": 0, "maximum": 1}}}
+      ]
+    }
+  }
+}
