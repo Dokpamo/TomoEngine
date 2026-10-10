@@ -37,7 +37,10 @@ fn missing_floor_is_a_real_failed_check_not_a_success_stub() {
 fn replay_is_equal_in_the_same_process_and_feature_mode() {
     let mut first = runtime();
     let mut second = runtime();
-    assert_eq!(first.run(600).unwrap().snapshot, second.run(600).unwrap().snapshot);
+    assert_eq!(
+        first.run(600).unwrap().snapshot,
+        second.run(600).unwrap().snapshot
+    );
 }
 
 #[test]
@@ -47,7 +50,10 @@ fn body_input_order_does_not_change_build_or_simulation_order() {
     second.bodies.reverse();
     let mut first = Runtime::from_scene(first).unwrap();
     let mut second = Runtime::from_scene(second).unwrap();
-    assert_eq!(first.run(600).unwrap().snapshot, second.run(600).unwrap().snapshot);
+    assert_eq!(
+        first.run(600).unwrap().snapshot,
+        second.run(600).unwrap().snapshot
+    );
 }
 
 #[test]
@@ -66,7 +72,10 @@ fn split_runs_use_the_same_fixed_tick_state() {
     let mut first = runtime();
     let mut second = runtime();
     first.run(300).unwrap();
-    assert_eq!(first.run(300).unwrap().snapshot, second.run(600).unwrap().snapshot);
+    assert_eq!(
+        first.run(300).unwrap().snapshot,
+        second.run(600).unwrap().snapshot
+    );
 }
 
 #[test]

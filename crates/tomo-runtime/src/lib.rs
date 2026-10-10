@@ -87,7 +87,8 @@ impl Runtime {
             let shape = match spec.shape {
                 ShapeSpec::Sphere { radius } => Shape::sphere(radius),
                 ShapeSpec::Box { half_extents } => Shape::cuboid(vector(half_extents)),
-            }.map_err(|error| physics_error(&format!("{path}/shape"), error))?;
+            }
+            .map_err(|error| physics_error(&format!("{path}/shape"), error))?;
             let position = vector(spec.position);
             let mut body = match spec.motion {
                 Motion::Dynamic => BodySettings::dynamic(shape, position, spec.mass),
@@ -102,10 +103,18 @@ impl Runtime {
             body.restitution = spec.restitution;
             body.is_sensor = spec.is_sensor;
             body.allow_sleep = spec.allow_sleep;
-            let id = world.add_body(body).map_err(|error| physics_error(&path, error))?;
+            let id = world
+                .add_body(body)
+                .map_err(|error| physics_error(&path, error))?;
             ids.insert(spec.id.clone(), id);
         }
-        Ok(Self { scene, world, ids, tick: 0, failed: false })
+        Ok(Self {
+            scene,
+            world,
+            ids,
+            tick: 0,
+            failed: false,
+        })
     }
 
     pub fn scene(&self) -> &Scene {
@@ -114,12 +123,20 @@ impl Runtime {
 
     pub fn snapshot(&self) -> Result<Snapshot, Problem> {
         if self.failed {
-            return Err(Problem::new("FAILED_WORLD", "/", "discard this runtime after numerical failure"));
+            return Err(Problem::new(
+                "FAILED_WORLD",
+                "/",
+                "discard this runtime after numerical failure",
+            ));
         }
         let mut bodies = Vec::with_capacity(self.ids.len());
         for (name, &id) in &self.ids {
             let body = self.world.body(id).ok_or_else(|| {
-                Problem::new("INTERNAL", "/bodies", "scene-to-physics mapping is inconsistent")
+                Problem::new(
+                    "INTERNAL",
+                    "/bodies",
+                    "scene-to-physics mapping is inconsistent",
+                )
             })?;
             let rotation = body.rotation();
             let state = BodyState {
@@ -130,11 +147,19 @@ impl Runtime {
                 angular_velocity: body.angular_velocity().to_array(),
                 sleeping: body.is_sleeping(),
             };
-            if state.position.iter().chain(&state.rotation)
-                .chain(&state.linear_velocity).chain(&state.angular_velocity)
+            if state
+                .position
+                .iter()
+                .chain(&state.rotation)
+                .chain(&state.linear_velocity)
+                .chain(&state.angular_velocity)
                 .any(|value| !value.is_finite())
             {
-                return Err(Problem::new("SIMULATION", format!("/bodies/{name}"), "non-finite state"));
+                return Err(Problem::new(
+                    "SIMULATION",
+                    format!("/bodies/{name}"),
+                    "non-finite state",
+                ));
             }
             bodies.push(state);
         }
@@ -149,20 +174,33 @@ impl Runtime {
     /// Numerical failures are fail-stop, not transactional simulation rollback.
     pub fn run(&mut self, ticks: u32) -> Result<RunReport, Problem> {
         if self.failed {
-            return Err(Problem::new("FAILED_WORLD", "/", "discard this runtime after numerical failure"));
+            return Err(Problem::new(
+                "FAILED_WORLD",
+                "/",
+                "discard this runtime after numerical failure",
+            ));
         }
-        let end = self.tick.checked_add(ticks).ok_or_else(|| {
-            Problem::new("LIMIT", "/ticks", "tick count overflow")
-        })?;
+        let end = self
+            .tick
+            .checked_add(ticks)
+            .ok_or_else(|| Problem::new("LIMIT", "/ticks", "tick count overflow"))?;
         let bodies = self.ids.len().max(1) as u64;
         let work = bodies * bodies * u64::from(end);
         if ticks == 0 || end > MAX_TICKS || work > MAX_WORK_UNITS {
-            return Err(Problem::new("LIMIT", "/ticks", "tick or cumulative body-squared work budget exceeded"));
+            return Err(Problem::new(
+                "LIMIT",
+                "/ticks",
+                "tick or cumulative body-squared work budget exceeded",
+            ));
         }
         while self.tick < end {
             if let Err(error) = self.world.update(self.scene.fixed_dt) {
                 self.failed = true;
-                return Err(Problem::new("SIMULATION", format!("/ticks/{}", self.tick), format!("{error:?}")));
+                return Err(Problem::new(
+                    "SIMULATION",
+                    format!("/ticks/{}", self.tick),
+                    format!("{error:?}"),
+                ));
             }
             self.tick += 1;
         }
@@ -173,7 +211,11 @@ impl Runtime {
                 return Err(error);
             }
         };
-        let states: BTreeMap<_, _> = snapshot.bodies.iter().map(|body| (body.id.as_str(), body)).collect();
+        let states: BTreeMap<_, _> = snapshot
+            .bodies
+            .iter()
+            .map(|body| (body.id.as_str(), body))
+            .collect();
         let mut checks = Vec::with_capacity(self.scene.checks.len());
         for check in &self.scene.checks {
             let body = states.get(check.body_id()).ok_or_else(|| {
@@ -181,17 +223,25 @@ impl Runtime {
             })?;
             let (observed, passed) = match check {
                 Check::Position { min, max, .. } => {
-                    let passed = (0..3).all(|axis| {
-                        (min[axis]..=max[axis]).contains(&body.position[axis])
-                    });
+                    let passed =
+                        (0..3).all(|axis| (min[axis]..=max[axis]).contains(&body.position[axis]));
                     (body.position.to_vec(), passed)
                 }
                 Check::Speed { max, .. } => {
-                    let speed = body.linear_velocity.iter().map(|v| v * v).sum::<f32>().sqrt();
+                    let speed = body
+                        .linear_velocity
+                        .iter()
+                        .map(|v| v * v)
+                        .sum::<f32>()
+                        .sqrt();
                     (vec![speed], speed <= *max)
                 }
             };
-            checks.push(CheckResult { check: check.clone(), observed, passed });
+            checks.push(CheckResult {
+                check: check.clone(),
+                observed,
+                passed,
+            });
         }
         Ok(RunReport {
             passed: checks.iter().all(|check| check.passed),

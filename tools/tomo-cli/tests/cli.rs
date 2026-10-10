@@ -5,11 +5,18 @@ use std::process::Command;
 
 fn fixture(path: &str) -> String {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../examples").join(path).to_str().unwrap().to_owned()
+        .join("../../examples")
+        .join(path)
+        .to_str()
+        .unwrap()
+        .to_owned()
 }
 
 fn invoke(args: &[&str]) -> (i32, Value) {
-    let output = Command::new(env!("CARGO_BIN_EXE_tomo")).args(args).output().unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_tomo"))
+        .args(args)
+        .output()
+        .unwrap();
     assert!(output.stderr.is_empty(), "stderr={:?}", output.stderr);
     let value = serde_json::from_slice(&output.stdout).unwrap();
     (output.status.code().unwrap(), value)
@@ -63,14 +70,25 @@ fn patch_returns_reusable_scene_and_never_overwrites_input() {
     assert_eq!(code, 0, "{value}");
     assert_eq!(value["revision"], 1);
     let modified = tomo_scene::Scene::from_json(&value.to_string()).unwrap();
-    assert_eq!(modified.bodies.iter().find(|body| body.id == "box").unwrap().position[1], 8.0);
+    assert_eq!(
+        modified
+            .bodies
+            .iter()
+            .find(|body| body.id == "box")
+            .unwrap()
+            .position[1],
+        8.0
+    );
     assert_eq!(std::fs::read(&path).unwrap(), before);
 }
 
 #[test]
 fn unknown_command_missing_file_and_invalid_tick_fail_structurally() {
     assert_eq!(invoke(&["build", "--target", "ios"]).0, 2);
-    assert_eq!(invoke(&["scene", "validate", "__tomo_missing_scene__.json"]).0, 2);
+    assert_eq!(
+        invoke(&["scene", "validate", "__tomo_missing_scene__.json"]).0,
+        2
+    );
     let path = fixture("scenes/falling_box.scene.json");
     for ticks in ["NaN", "-1", "0", "999999"] {
         let (code, value) = invoke(&["run", &path, "--ticks", ticks]);

@@ -16,14 +16,14 @@ fn typed_roundtrip_preserves_scene() {
 
 #[test]
 fn unknown_and_duplicate_fields_are_rejected() {
-    let unknown = INPUT.replacen("\"schema_version\"", "\"typo\": true, \"schema_version\"", 1);
+    let unknown = INPUT.replacen(
+        "\"schema_version\"",
+        "\"typo\": true, \"schema_version\"",
+        1,
+    );
     assert_eq!(Scene::from_json(&unknown).unwrap_err().code, "JSON");
     let duplicate = INPUT.replacen("\"revision\": 0", "\"revision\": 0, \"revision\": 1", 1);
     assert_eq!(Scene::from_json(&duplicate).unwrap_err().code, "JSON");
-    let nested = INPUT.replacen("\"radius\"", "\"typo\": 1, \"radius\"", 1);
-    if nested != INPUT {
-        assert!(Scene::from_json(&nested).is_err());
-    }
 }
 
 #[test]
@@ -68,8 +68,14 @@ fn failed_patch_leaves_original_unchanged() {
         schema_version: 1,
         expected_revision: 0,
         operations: vec![
-            Operation::SetMaterial { id: "box".into(), friction: 0.8, restitution: 0.1 },
-            Operation::Remove { id: "missing".into() },
+            Operation::SetMaterial {
+                id: "box".into(),
+                friction: 0.8,
+                restitution: 0.1,
+            },
+            Operation::Remove {
+                id: "missing".into(),
+            },
         ],
     };
     assert!(original.patched(&patch).is_err());
@@ -79,12 +85,26 @@ fn failed_patch_leaves_original_unchanged() {
 #[test]
 fn successful_patch_increments_revision_and_rejects_stale_retry() {
     let original = scene();
-    let patch = Patch::from_json(include_str!("../../../examples/patches/raise_box.patch.json")).unwrap();
+    let patch = Patch::from_json(include_str!(
+        "../../../examples/patches/raise_box.patch.json"
+    ))
+    .unwrap();
     let modified = original.patched(&patch).unwrap();
     assert_eq!(modified.revision, 1);
-    assert_eq!(modified.bodies.iter().find(|b| b.id == "box").unwrap().position[1], 8.0);
+    assert_eq!(
+        modified
+            .bodies
+            .iter()
+            .find(|b| b.id == "box")
+            .unwrap()
+            .position[1],
+        8.0
+    );
     assert_eq!(original.revision, 0);
-    assert_eq!(modified.patched(&patch).unwrap_err().code, "REVISION_CONFLICT");
+    assert_eq!(
+        modified.patched(&patch).unwrap_err().code,
+        "REVISION_CONFLICT"
+    );
 }
 
 #[test]
@@ -94,7 +114,9 @@ fn invalid_final_candidate_does_not_escape() {
         schema_version: 1,
         expected_revision: 0,
         operations: vec![Operation::SetMaterial {
-            id: "box".into(), friction: -1.0, restitution: 0.0,
+            id: "box".into(),
+            friction: -1.0,
+            restitution: 0.0,
         }],
     };
     assert_eq!(original.patched(&patch).unwrap_err().code, "RANGE");

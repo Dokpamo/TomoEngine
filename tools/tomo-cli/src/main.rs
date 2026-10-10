@@ -90,9 +90,9 @@ fn dispatch(args: &[String]) -> Result<(Value, u8), Problem> {
             ))
         }
         ["run", path, "--ticks", ticks] => {
-            let ticks: u32 = ticks.parse().map_err(|_| {
-                Problem::new("ARGUMENT", "/ticks", "expected a positive integer")
-            })?;
+            let ticks: u32 = ticks
+                .parse()
+                .map_err(|_| Problem::new("ARGUMENT", "/ticks", "expected a positive integer"))?;
             let mut runtime = Runtime::from_scene(load_scene(path)?)?;
             let report = runtime.run(ticks)?;
             let exit = u8::from(!report.passed);
@@ -113,9 +113,8 @@ fn main() -> ExitCode {
     let args: Result<Vec<_>, _> = std::env::args_os()
         .skip(1)
         .map(|arg| {
-            arg.into_string().map_err(|_| {
-                Problem::new("ARGUMENT", "/arguments", "expected UTF-8 arguments")
-            })
+            arg.into_string()
+                .map_err(|_| Problem::new("ARGUMENT", "/arguments", "expected UTF-8 arguments"))
         })
         .collect();
     let outcome = args.and_then(|args| dispatch(&args));
@@ -130,7 +129,10 @@ fn main() -> ExitCode {
             } else {
                 2
             };
-            (json!({"schema_version": 1, "ok": false, "error": error}), exit)
+            (
+                json!({"schema_version": 1, "ok": false, "error": error}),
+                exit,
+            )
         }
     };
     let mut stdout = std::io::stdout().lock();

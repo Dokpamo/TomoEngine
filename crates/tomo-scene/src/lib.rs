@@ -137,7 +137,11 @@ fn range(value: f32, min: f32, max: f32, path: &str) -> Result<(), Problem> {
     if value.is_finite() && (min..=max).contains(&value) {
         Ok(())
     } else {
-        Err(Problem::new("RANGE", path, format!("expected finite {min}..={max}")))
+        Err(Problem::new(
+            "RANGE",
+            path,
+            format!("expected finite {min}..={max}"),
+        ))
     }
 }
 
@@ -151,9 +155,15 @@ fn vector(values: &[f32], max: f32, path: &str) -> Result<(), Problem> {
 fn identifier(id: &str, path: &str) -> Result<(), Problem> {
     if id.is_empty()
         || id.len() > 64
-        || !id.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'_' || c == b'-')
+        || !id
+            .bytes()
+            .all(|c| c.is_ascii_alphanumeric() || c == b'_' || c == b'-')
     {
-        return Err(Problem::new("ID", path, "use 1..64 ASCII letters, digits, _ or -"));
+        return Err(Problem::new(
+            "ID",
+            path,
+            "use 1..64 ASCII letters, digits, _ or -",
+        ));
     }
     Ok(())
 }
@@ -165,11 +175,19 @@ impl BodySpec {
         vector(&self.rotation, 1.0, &format!("{path}/rotation"))?;
         let norm: f32 = self.rotation.iter().map(|v| v * v).sum();
         if (norm - 1.0).abs() > 1.0e-3 {
-            return Err(Problem::new("ROTATION", format!("{path}/rotation"), "expected unit xyzw quaternion"));
+            return Err(Problem::new(
+                "ROTATION",
+                format!("{path}/rotation"),
+                "expected unit xyzw quaternion",
+            ));
         }
         range(self.mass, 1.0e-6, 1.0e9, &format!("{path}/mass"))?;
         if self.motion != Motion::Dynamic && self.mass != 1.0 {
-            return Err(Problem::new("MASS", format!("{path}/mass"), "v1 non-dynamic bodies use the default mass marker 1"));
+            return Err(Problem::new(
+                "MASS",
+                format!("{path}/mass"),
+                "v1 non-dynamic bodies use the default mass marker 1",
+            ));
         }
         range(self.friction, 0.0, 100.0, &format!("{path}/friction"))?;
         range(self.restitution, 0.0, 1.0, &format!("{path}/restitution"))?;
@@ -182,7 +200,11 @@ impl BodySpec {
             let length = values.iter().map(|v| v * v).sum::<f32>().sqrt();
             range(length, 0.0, max, &field_path)?;
             if self.motion == Motion::Static && length != 0.0 {
-                return Err(Problem::new("STATIC_VELOCITY", field_path, "static bodies cannot move"));
+                return Err(Problem::new(
+                    "STATIC_VELOCITY",
+                    field_path,
+                    "static bodies cannot move",
+                ));
             }
         }
         match self.shape {
@@ -191,7 +213,12 @@ impl BodySpec {
             }
             ShapeSpec::Box { half_extents } => {
                 for (axis, value) in half_extents.into_iter().enumerate() {
-                    range(value, 1.0e-4, 1.0e4, &format!("{path}/shape/half_extents/{axis}"))?;
+                    range(
+                        value,
+                        1.0e-4,
+                        1.0e4,
+                        &format!("{path}/shape/half_extents/{axis}"),
+                    )?;
                 }
             }
         }
@@ -208,10 +235,18 @@ impl Scene {
 
     pub fn validate(&self) -> Result<(), Problem> {
         if self.schema_version != SCHEMA_VERSION {
-            return Err(Problem::new("VERSION", "/schema_version", "only scene v1 is supported"));
+            return Err(Problem::new(
+                "VERSION",
+                "/schema_version",
+                "only scene v1 is supported",
+            ));
         }
         if self.name.is_empty() || self.name.len() > 256 {
-            return Err(Problem::new("NAME", "/name", "name must be 1..256 UTF-8 bytes"));
+            return Err(Problem::new(
+                "NAME",
+                "/name",
+                "name must be 1..256 UTF-8 bytes",
+            ));
         }
         vector(&self.gravity, 1.0e4, "/gravity")?;
         // Physics defaults to two substeps, each requiring at least 1e-6 seconds.
@@ -223,7 +258,11 @@ impl Scene {
         for (index, body) in self.bodies.iter().enumerate() {
             body.validate(&format!("/bodies/{index}"))?;
             if !ids.insert(body.id.as_str()) {
-                return Err(Problem::new("DUPLICATE_ID", format!("/bodies/{index}/id"), &body.id));
+                return Err(Problem::new(
+                    "DUPLICATE_ID",
+                    format!("/bodies/{index}/id"),
+                    &body.id,
+                ));
             }
         }
         for (index, check) in self.checks.iter().enumerate() {
@@ -249,17 +288,33 @@ impl Scene {
     pub fn patched(&self, patch: &Patch) -> Result<Self, Problem> {
         self.validate()?;
         if patch.schema_version != SCHEMA_VERSION {
-            return Err(Problem::new("VERSION", "/schema_version", "only patch v1 is supported"));
+            return Err(Problem::new(
+                "VERSION",
+                "/schema_version",
+                "only patch v1 is supported",
+            ));
         }
         if patch.expected_revision != self.revision {
-            return Err(Problem::new("REVISION_CONFLICT", "/expected_revision", "reload the current document before retrying"));
+            return Err(Problem::new(
+                "REVISION_CONFLICT",
+                "/expected_revision",
+                "reload the current document before retrying",
+            ));
         }
         if patch.operations.is_empty() || patch.operations.len() > MAX_PATCH_OPERATIONS {
-            return Err(Problem::new("LIMIT", "/operations", "expected 1..256 operations"));
+            return Err(Problem::new(
+                "LIMIT",
+                "/operations",
+                "expected 1..256 operations",
+            ));
         }
         let mut candidate = self.clone();
         candidate.revision = self.revision.checked_add(1).ok_or_else(|| {
-            Problem::new("REVISION_LIMIT", "/revision", "revision cannot be incremented")
+            Problem::new(
+                "REVISION_LIMIT",
+                "/revision",
+                "revision cannot be incremented",
+            )
         })?;
         for (index, operation) in patch.operations.iter().enumerate() {
             let path = format!("/operations/{index}");
@@ -271,18 +326,35 @@ impl Scene {
                     candidate.bodies.push(body.clone());
                 }
                 Operation::Remove { id } => {
-                    let index = candidate.bodies.iter().position(|body| &body.id == id)
+                    let index = candidate
+                        .bodies
+                        .iter()
+                        .position(|body| &body.id == id)
                         .ok_or_else(|| Problem::new("MISSING_BODY", path, id))?;
                     candidate.bodies.remove(index);
                 }
-                Operation::SetTransform { id, position, rotation } => {
-                    let body = candidate.bodies.iter_mut().find(|body| &body.id == id)
+                Operation::SetTransform {
+                    id,
+                    position,
+                    rotation,
+                } => {
+                    let body = candidate
+                        .bodies
+                        .iter_mut()
+                        .find(|body| &body.id == id)
                         .ok_or_else(|| Problem::new("MISSING_BODY", path, id))?;
                     body.position = *position;
                     body.rotation = *rotation;
                 }
-                Operation::SetMaterial { id, friction, restitution } => {
-                    let body = candidate.bodies.iter_mut().find(|body| &body.id == id)
+                Operation::SetMaterial {
+                    id,
+                    friction,
+                    restitution,
+                } => {
+                    let body = candidate
+                        .bodies
+                        .iter_mut()
+                        .find(|body| &body.id == id)
                         .ok_or_else(|| Problem::new("MISSING_BODY", path, id))?;
                     body.friction = *friction;
                     body.restitution = *restitution;
@@ -312,8 +384,20 @@ impl Patch {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "op", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Operation {
-    Add { body: BodySpec },
-    Remove { id: String },
-    SetTransform { id: String, position: [f32; 3], rotation: [f32; 4] },
-    SetMaterial { id: String, friction: f32, restitution: f32 },
+    Add {
+        body: BodySpec,
+    },
+    Remove {
+        id: String,
+    },
+    SetTransform {
+        id: String,
+        position: [f32; 3],
+        rotation: [f32; 4],
+    },
+    SetMaterial {
+        id: String,
+        friction: f32,
+        restitution: f32,
+    },
 }
