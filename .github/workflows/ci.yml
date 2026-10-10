@@ -59,6 +59,8 @@ jobs:
           cargo +${{ matrix.toolchain }} run -q -p tomo-play --locked --offline -- --project target/ci-game --replay examples/replays/box_run_win.replay.json
       - name: Box Run fixed input acceptance
         run: cargo +${{ matrix.toolchain }} run -q -p tomo-play --locked --offline -- --replay examples/replays/box_run_win.replay.json
+      - name: Authored logic project acceptance
+        run: cargo +${{ matrix.toolchain }} run -q -p tomo-play --locked --offline -- --project examples/projects/logic_lab --replay examples/replays/logic_lab_timeout.replay.json
 
   quality:
     timeout-minutes: 15

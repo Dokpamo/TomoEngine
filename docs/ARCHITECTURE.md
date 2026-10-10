@@ -29,7 +29,11 @@ runtime/scene/physics에서 renderer로 향하는 의존성은 없다.
 `tomo-game`은 창 없는 규칙·컨트롤러·replay를, `tomo-project`는 프로젝트 문서·검증·저장·Undo를
 담당한다. 두 crate의 전이 의존성은 CPU 코어/serialization으로 제한한다. `tools/tomo-play`와
 `tools/tomo-editor`가 이들을 renderer/OS 입력과 연결한다. 에디터의 Play world는 문서와 별도다.
-프로젝트 저장의 revision·파일 충돌·복구 범위는 EDITOR.md를 따른다. 물리 없는 색/HUD는 `FrameStyle`로 분리했으며 일반 visual entity/ECS는 후속이다.
+프로젝트 저장의 revision·파일 충돌·복구 범위는 EDITOR.md를 따른다.
+Project v2는 Logic v1을 포함하며, v1 문서는 엄격한 구형 검증 후 메모리에서 이행한다.
+`tomo-game`의 제한된 이벤트/조건/동작 실행기는 GPU·외부 코드 없이 동작한다.
+Runtime이 실제 contact event를 scene ID로 변환하고 게임 계층이 tick별로 합쳐 규칙에 전달한다.
+물리 전/후 단계, 순서, Once, 게임 fail-stop과 규칙 예산은 LOGIC.md를 따른다. 물리 없는 색/HUD는 `FrameStyle`로 분리했으며 일반 visual entity/ECS는 후속이다.
 `tomo-assets`: GLB·텍스처 가져오기/검증·버전 있는 변환 캐시.
 애니메이션·캐릭터는 책임이 확인될 때 별도 crate로 추출한다. 처음부터 빈 crate를 만들지 않는다.
 플랫폼 어댑터는 창·입력·오디오·저장·수명주기·패키징을 담당한다. 콘솔 코드는 SDK 허가와

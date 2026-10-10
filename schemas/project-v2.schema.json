@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:tomo:project:2",
+  "title": "Tomo game project v2",
+  "$comment": "Load scene v1 and logic v1 under their urn IDs. The Rust validator checks semantic references, finite numbers, budgets and physics construction. The loader migrates strict project v1 documents in memory; saves always produce v2.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "revision",
+    "name",
+    "scene",
+    "game"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 2
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 18446744073709551615
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "scene": {
+      "$ref": "urn:tomo:scene:1"
+    },
+    "game": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "player",
+        "goal",
+        "speed",
+        "logic"
+      ],
+      "properties": {
+        "player": {
+          "$ref": "urn:tomo:scene:1#/$defs/id"
+        },
+        "goal": {
+          "$ref": "urn:tomo:scene:1#/$defs/id"
+        },
+        "speed": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 30
+        },
+        "logic": {
+          "$ref": "urn:tomo:logic:1"
+        }
+      }
+    }
+  }
+}

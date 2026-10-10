@@ -2,7 +2,7 @@
 //! Fixed-tick scene execution, with bounded tool runs and persistent game stepping.
 #![forbid(unsafe_code)]
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use tomo_physics::{BodyId, BodySettings, PhysicsSettings, PhysicsSystem, Quat, Shape, Vec3};
 use tomo_scene::{Check, Motion, Problem, Scene, ShapeSpec};
@@ -25,6 +25,23 @@ pub struct Snapshot {
     pub tick: u32,
     pub simulation_time: f64,
     pub bodies: Vec<BodyState>,
+}
+
+/// Stable scene IDs for events emitted during the most recently completed physics tick.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ContactKind {
+    Started,
+    Persisted,
+    Stopped,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct ContactEvent {
+    pub body_a: String,
+    pub body_b: String,
+    pub kind: ContactKind,
+    pub is_sensor: bool,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -57,6 +74,7 @@ pub struct Runtime {
     scene: Scene,
     world: PhysicsSystem,
     ids: BTreeMap<String, BodyId>,
+    names: BTreeMap<BodyId, String>,
     tick: u32,
     failed: bool,
 }
@@ -108,10 +126,12 @@ impl Runtime {
                 .map_err(|error| physics_error(&path, error))?;
             ids.insert(spec.id.clone(), id);
         }
+        let names = ids.iter().map(|(name, &id)| (id, name.clone())).collect();
         Ok(Self {
             scene,
             world,
             ids,
+            names,
             tick: 0,
             failed: false,
         })
@@ -119,6 +139,33 @@ impl Runtime {
 
     pub fn scene(&self) -> &Scene {
         &self.scene
+    }
+
+    /// Events can contain multiple substeps for a pair. Consumers choose their own
+    /// coalescing policy; this is detection evidence, not a continuous collision guarantee.
+    pub fn contact_events(&self) -> Result<Vec<ContactEvent>, Problem> {
+        self.ensure_healthy()?;
+        self.world
+            .contact_events()
+            .iter()
+            .map(|event| {
+                let name = |id| {
+                    self.names.get(&id).cloned().ok_or_else(|| {
+                        Problem::new("INTERNAL", "/contacts", "unknown physics body in event")
+                    })
+                };
+                Ok(ContactEvent {
+                    body_a: name(event.body_a)?,
+                    body_b: name(event.body_b)?,
+                    kind: match event.kind {
+                        tomo_physics::ContactEventKind::Started => ContactKind::Started,
+                        tomo_physics::ContactEventKind::Persisted => ContactKind::Persisted,
+                        tomo_physics::ContactEventKind::Stopped => ContactKind::Stopped,
+                    },
+                    is_sensor: event.is_sensor,
+                })
+            })
+            .collect()
     }
 
     fn ensure_healthy(&self) -> Result<(), Problem> {

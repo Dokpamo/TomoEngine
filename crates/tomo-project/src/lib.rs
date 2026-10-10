@@ -18,12 +18,30 @@ pub struct Project {
     pub scene: Scene,
     pub game: GameRules,
 }
+
+// Preserve the v1 contract, including rejecting unknown fields inside the old game object.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct LegacyProject {
+    schema_version: u32,
+    revision: u64,
+    name: String,
+    scene: Scene,
+    game: LegacyGame,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct LegacyGame {
+    player: String,
+    goal: String,
+    speed: f32,
+}
 impl Project {
     pub fn template(name: &str) -> Result<Self, Problem> {
         let mut scene = Scene::from_json(tomo_game::LEVEL)?;
         scene.name = name.into();
         let project = Self {
-            schema_version: 1,
+            schema_version: 2,
             revision: 0,
             name: name.into(),
             scene,
@@ -36,17 +54,47 @@ impl Project {
         if text.len() > tomo_scene::MAX_DOCUMENT_BYTES {
             return Err(Problem::new("LIMIT", "/", "project exceeds 1 MiB"));
         }
-        let project: Self =
-            serde_json::from_str(text).map_err(|e| Problem::new("JSON", "/", e.to_string()))?;
+        #[derive(Deserialize)]
+        struct Header {
+            schema_version: u32,
+        }
+        let json_error = |e: serde_json::Error| Problem::new("JSON", "/", e.to_string());
+        let header: Header = serde_json::from_str(text).map_err(json_error)?;
+        let project = match header.schema_version {
+            1 => {
+                let old: LegacyProject = serde_json::from_str(text).map_err(json_error)?;
+                debug_assert_eq!(old.schema_version, 1);
+                Self {
+                    schema_version: 2,
+                    revision: old.revision,
+                    name: old.name,
+                    scene: old.scene,
+                    game: GameRules {
+                        player: old.game.player,
+                        goal: old.game.goal,
+                        speed: old.game.speed,
+                        logic: tomo_game::Logic::default(),
+                    },
+                }
+            }
+            2 => serde_json::from_str(text).map_err(json_error)?,
+            _ => {
+                return Err(Problem::new(
+                    "VERSION",
+                    "/schema_version",
+                    "only project v1 and v2 are supported",
+                ));
+            }
+        };
         project.validate()?;
         Ok(project)
     }
     pub fn validate(&self) -> Result<(), Problem> {
-        if self.schema_version != 1 {
+        if self.schema_version != 2 {
             return Err(Problem::new(
                 "VERSION",
                 "/schema_version",
-                "only project v1 is supported",
+                "in-memory projects must be v2; use from_json to migrate v1",
             ));
         }
         if self.name.trim().is_empty()

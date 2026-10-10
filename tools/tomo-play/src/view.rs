@@ -75,7 +75,13 @@ pub fn style(game: &Game, view: &CaptureOptions, paused: bool) -> FrameStyle {
         .take(18)
         .collect();
     text(51., 27., 4., title, white);
-    text(51., 67., 1.5, "TOMO ENGINE / 01".into(), muted);
+    text(
+        51.,
+        67.,
+        1.5,
+        format!("TOMO ENGINE / SCORE {}", game.score()),
+        muted,
+    );
     text(w - 330., 28., 1.7, "TIME".into(), muted);
     text(
         w - 330.,
@@ -94,7 +100,7 @@ pub fn style(game: &Game, view: &CaptureOptions, paused: bool) -> FrameStyle {
         mint,
     );
     text(31., h - 52., 2., "WASD / ARROWS".into(), white);
-    text(31., h - 27., 1.5, "MOVE THE ORANGE BOX".into(), muted);
+    text(31., h - 27., 1.5, "SPACE ACTION".into(), muted);
     text(
         w - 360.,
         h - 51.,
@@ -110,9 +116,10 @@ pub fn style(game: &Game, view: &CaptureOptions, paused: bool) -> FrameStyle {
         muted,
     );
     let headline = match game.status() {
-        Status::Ready => "REACH THE GREEN PAD",
-        Status::Playing => "FIND YOUR WAY THROUGH THE GATES",
-        Status::Won => "DESTINATION REACHED",
+        Status::Ready => "MOVE OR PRESS SPACE TO START",
+        Status::Playing => "PLAY YOUR GAME",
+        Status::Won => "LEVEL COMPLETE",
+        Status::Lost => "GAME OVER",
     };
     let title = if paused { "PAUSED" } else { headline };
     text(
@@ -122,7 +129,7 @@ pub fn style(game: &Game, view: &CaptureOptions, paused: bool) -> FrameStyle {
         title.into(),
         mint,
     );
-    if game.status() == Status::Won {
+    if matches!(game.status(), Status::Won | Status::Lost) {
         let cx = w * 0.5;
         let cy = h * 0.5;
         style.rectangles.push(OverlayRect {
@@ -136,15 +143,27 @@ pub fn style(game: &Game, view: &CaptureOptions, paused: bool) -> FrameStyle {
             color: mint,
         });
         style.text.push(OverlayText {
-            position: [(cx - 126.) * s, (cy - 43.) * s],
+            position: [
+                (cx - if game.status() == Status::Won {
+                    126.
+                } else {
+                    144.
+                }) * s,
+                (cy - 43.) * s,
+            ],
             scale: 6. * s,
-            text: "YOU WIN".into(),
+            text: if game.status() == Status::Won {
+                "YOU WIN"
+            } else {
+                "YOU LOSE"
+            }
+            .into(),
             color: white,
         });
         style.text.push(OverlayText {
             position: [(cx - 174.) * s, (cy + 23.) * s],
             scale: 2. * s,
-            text: "PRESS R TO BEAT YOUR TIME".into(),
+            text: "PRESS R TO RESTART".into(),
             color: mint,
         });
     }

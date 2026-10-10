@@ -82,6 +82,7 @@ impl App {
                     down: key(KeyCode::KeyS, KeyCode::ArrowDown),
                     left: key(KeyCode::KeyA, KeyCode::ArrowLeft),
                     right: key(KeyCode::KeyD, KeyCode::ArrowRight),
+                    action: self.keys.contains(&KeyCode::Space),
                 }
             };
             for _ in 0..steps {

@@ -2,13 +2,14 @@
 use serde::{Deserialize, Serialize};
 use tomo_scene::{Motion, Problem, Scene, ShapeSpec};
 
-/// The first game template: an upright velocity-controlled body reaches a rectangular pad.
+/// Roles, controller tuning and an editable declarative rule program.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct GameRules {
     pub player: String,
     pub goal: String,
     pub speed: f32,
+    pub logic: crate::Logic,
 }
 impl Default for GameRules {
     fn default() -> Self {
@@ -16,6 +17,7 @@ impl Default for GameRules {
             player: "player".into(),
             goal: "goal".into(),
             speed: super::SPEED,
+            logic: crate::Logic::default(),
         }
     }
 }
@@ -27,6 +29,7 @@ fn radius(shape: &ShapeSpec) -> f32 {
 }
 impl GameRules {
     pub fn validate(&self, scene: &Scene) -> Result<(), Problem> {
+        self.logic.validate(scene)?;
         let error = |message| Problem::new("GAME_RULES", "/game", message);
         if !self.speed.is_finite() || !(0.1..=30.0).contains(&self.speed) {
             return Err(error("speed must be finite and 0.1..30 metres/second"));

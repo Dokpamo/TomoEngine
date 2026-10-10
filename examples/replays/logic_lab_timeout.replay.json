@@ -1,0 +1,16 @@
+{
+  "schema_version": 2,
+  "segments": [
+    {
+      "ticks": 1,
+      "input": {
+        "action": true
+      }
+    },
+    {
+      "ticks": 1799,
+      "input": {}
+    }
+  ],
+  "expect_win": false
+}

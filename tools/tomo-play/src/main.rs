@@ -103,7 +103,7 @@ fn execute(args: &[String]) -> Result<u8, Problem> {
             println!(
                 "{}",
                 json!({"schema_version":1,"passed":passed,"status":game.status(),
-                "seconds":game.seconds(),"snapshot":game.snapshot(),"capture":capture})
+                "seconds":game.seconds(),"score":game.score(),"rule_events":game.recent_events(),"snapshot":game.snapshot(),"capture":capture})
             );
             Ok(u8::from(!passed))
         }
@@ -116,7 +116,8 @@ fn main() -> ExitCode {
         Ok(code) => ExitCode::from(code),
         Err(error) => {
             let code = match error.code.as_str() {
-                "RENDER" | "GPU_UNAVAILABLE" | "WINDOW" | "SIMULATION" | "OUTPUT" => 3,
+                "RENDER" | "GPU_UNAVAILABLE" | "WINDOW" | "SIMULATION" | "OUTPUT"
+                | "RULE_EXECUTION" | "FAILED_GAME" | "FAILED_WORLD" | "INTERNAL" => 3,
                 _ => 2,
             };
             println!("{}", json!({"schema_version":1,"error":error}));

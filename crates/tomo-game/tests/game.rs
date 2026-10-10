@@ -81,7 +81,8 @@ fn diagonals_are_normalized_and_opposing_inputs_cancel() {
             up: true,
             down: true,
             left: true,
-            right: true
+            right: true,
+            ..Input::default()
         }
         .direction(),
         [0., 0.]

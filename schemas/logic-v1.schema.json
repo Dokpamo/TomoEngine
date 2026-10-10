@@ -1,0 +1,343 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "start",
+    "rules"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "start": {
+      "enum": [
+        "first_input",
+        "immediate"
+      ]
+    },
+    "rules": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/rule"
+      }
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:tomo:logic:1",
+  "title": "Tomo declarative game logic v1",
+  "$comment": "All fields are required. Semantic validation also checks unique IDs, UTF-8 byte lengths, body references, dynamic contact pairs, movable velocity targets, finite numbers and terminal action ordering. This is data, not executable source.",
+  "$defs": {
+    "trigger": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "start"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "every_tick"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "key"
+          ],
+          "properties": {
+            "type": {
+              "const": "key_pressed"
+            },
+            "key": {
+              "enum": [
+                "up",
+                "down",
+                "left",
+                "right",
+                "action"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "ticks",
+            "repeat"
+          ],
+          "properties": {
+            "type": {
+              "const": "timer"
+            },
+            "ticks": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 36000
+            },
+            "repeat": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "body_a",
+            "body_b",
+            "kind"
+          ],
+          "properties": {
+            "type": {
+              "const": "contact"
+            },
+            "body_a": {
+              "$ref": "urn:tomo:scene:1#/$defs/id"
+            },
+            "body_b": {
+              "$ref": "urn:tomo:scene:1#/$defs/id"
+            },
+            "kind": {
+              "enum": [
+                "started",
+                "persisted",
+                "stopped"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "goal_reached"
+            }
+          }
+        }
+      ]
+    },
+    "condition": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "key"
+          ],
+          "properties": {
+            "type": {
+              "const": "key_held"
+            },
+            "key": {
+              "enum": [
+                "up",
+                "down",
+                "left",
+                "right",
+                "action"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "value"
+          ],
+          "properties": {
+            "type": {
+              "const": "score_at_least"
+            },
+            "value": {
+              "type": "integer",
+              "minimum": -1000000,
+              "maximum": 1000000
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "body",
+            "y"
+          ],
+          "properties": {
+            "type": {
+              "const": "height_below"
+            },
+            "body": {
+              "$ref": "urn:tomo:scene:1#/$defs/id"
+            },
+            "y": {
+              "type": "number",
+              "minimum": -10000,
+              "maximum": 10000
+            }
+          }
+        }
+      ]
+    },
+    "action": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "move_player"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "body",
+            "linear"
+          ],
+          "properties": {
+            "type": {
+              "const": "set_velocity"
+            },
+            "body": {
+              "$ref": "urn:tomo:scene:1#/$defs/id"
+            },
+            "linear": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "items": {
+                "type": "number",
+                "minimum": -100,
+                "maximum": 100
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "amount"
+          ],
+          "properties": {
+            "type": {
+              "const": "add_score"
+            },
+            "amount": {
+              "type": "integer",
+              "minimum": -1000000,
+              "maximum": 1000000
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "win"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "lose"
+            }
+          }
+        }
+      ]
+    },
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "enabled",
+        "once",
+        "trigger",
+        "conditions",
+        "actions"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "urn:tomo:scene:1#/$defs/id"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "once": {
+          "type": "boolean"
+        },
+        "trigger": {
+          "$ref": "#/$defs/trigger"
+        },
+        "conditions": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/condition"
+          }
+        },
+        "actions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/action"
+          }
+        }
+      }
+    }
+  }
+}

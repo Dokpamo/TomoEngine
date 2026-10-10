@@ -35,7 +35,7 @@ fn version_fields_references_numbers_and_file_size_are_strict() {
     assert_eq!(Project::from_json(&json).unwrap(), original);
     for path in ["schema_version", "unknown"] {
         let mut value = serde_json::to_value(&original).unwrap();
-        value[path] = serde_json::json!(2);
+        value[path] = serde_json::json!(99);
         assert!(Project::from_json(&value.to_string()).is_err());
     }
     let mut p = original.clone();
@@ -207,4 +207,75 @@ fn project_template_keeps_box_run_replay_and_bounds_large_project_replay_work() 
     let initial = game.snapshot().clone();
     assert_eq!(replay.run(&mut game).unwrap_err().code, "LIMIT");
     assert_eq!(game.snapshot(), &initial);
+}
+
+#[test]
+fn legacy_files_migrate_explicitly_in_memory_and_only_save_as_v2_when_requested() {
+    let tmp = Temp::new();
+    let old = template();
+    let file = ProjectFile::create(tmp.child(), &old).unwrap();
+    let mut value = serde_json::to_value(&old).unwrap();
+    value["schema_version"] = serde_json::json!(1);
+    value["game"].as_object_mut().unwrap().remove("logic");
+    let legacy = value.to_string();
+    fs::write(file.path(), &legacy).unwrap();
+    let mut file = ProjectFile::open(tmp.child()).unwrap();
+    assert_eq!(file.project().schema_version, 2);
+    assert_eq!(file.project().revision, old.revision);
+    assert!(!file.is_dirty(file.project()));
+    assert_eq!(fs::read_to_string(file.path()).unwrap(), legacy);
+    let migrated = file.project().clone();
+    let mut game = migrated.game().unwrap();
+    let replay = Replay::from_json(include_str!(
+        "../../../examples/replays/box_run_win.replay.json"
+    ))
+    .unwrap();
+    assert!(replay.run(&mut game).unwrap());
+    assert_eq!(game.elapsed_ticks(), 514);
+    file.save(&migrated).unwrap();
+    let saved: serde_json::Value = serde_json::from_slice(&fs::read(file.path()).unwrap()).unwrap();
+    assert_eq!(saved["schema_version"], 2);
+    assert_eq!(saved["game"]["logic"]["schema_version"], 1);
+    value["game"]["logic"] = serde_json::to_value(tomo_game::Logic::default()).unwrap();
+    assert!(
+        Project::from_json(&value.to_string()).is_err(),
+        "v1 must reject a v2-only field"
+    );
+    value["schema_version"] = serde_json::json!(2);
+    value["game"].as_object_mut().unwrap().remove("logic");
+    assert!(
+        Project::from_json(&value.to_string()).is_err(),
+        "v2 must not silently restore template rules"
+    );
+}
+
+#[test]
+fn rule_references_and_invalid_logic_keep_document_history_and_world_unchanged() {
+    let mut project = template();
+    project.game.logic.rules.push(tomo_game::Rule {
+        id: "wall".into(),
+        name: "Wall collision".into(),
+        enabled: false,
+        once: true,
+        trigger: tomo_game::Trigger::Contact {
+            body_a: "player".into(),
+            body_b: "gate_a".into(),
+            kind: tomo_game::ContactKind::Started,
+        },
+        conditions: vec![],
+        actions: vec![tomo_game::Action::Lose {}],
+    });
+    let mut doc = Document::new(project.clone()).unwrap();
+    let snapshot = doc.snapshot().clone();
+    assert!(doc.remove("gate_a").is_err());
+    let mut invalid = project.clone();
+    invalid.game.logic.rules[0].actions.clear();
+    assert!(doc.apply(invalid, 0).is_err());
+    assert_eq!(doc.project(), &project);
+    assert_eq!(doc.snapshot(), &snapshot);
+    assert!(!doc.can_undo());
+    let mut valid = project;
+    valid.game.logic.rules.pop();
+    doc.apply(valid, 0).unwrap();
+    doc.remove("gate_a").unwrap();
 }

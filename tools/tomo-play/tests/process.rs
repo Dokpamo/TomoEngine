@@ -117,3 +117,34 @@ fn saved_custom_project_runs_with_its_own_roles_and_goal() {
     );
     std::fs::remove_dir_all(directory).unwrap();
 }
+
+#[test]
+fn authored_logic_project_uses_space_contact_score_timeout_and_goal_in_the_real_player() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples");
+    let project = root.join("projects/logic_lab");
+    let replay = root.join("replays/logic_lab_timeout.replay.json");
+    let (code, value) = invoke(&[
+        "--project",
+        project.to_str().unwrap(),
+        "--replay",
+        replay.to_str().unwrap(),
+    ]);
+    assert_eq!(code, 0, "{value}");
+    assert_eq!(value["status"], "lost");
+    assert_eq!(value["score"], 1);
+    assert_eq!(value["snapshot"]["tick"], 1800);
+    assert_eq!(
+        value["rule_events"].as_array().unwrap().last().unwrap()["rule_id"],
+        "timeout"
+    );
+    let (code, value) = invoke(&[
+        "--project",
+        project.to_str().unwrap(),
+        "--replay",
+        &replay_path(),
+    ]);
+    assert_eq!(code, 0, "{value}");
+    assert_eq!(value["status"], "won");
+    assert_eq!(value["score"], 1);
+    assert_eq!(value["snapshot"]["tick"], 514);
+}

@@ -105,6 +105,7 @@ impl App {
                     down: i.key_down(egui::Key::S) || i.key_down(egui::Key::ArrowDown),
                     left: i.key_down(egui::Key::A) || i.key_down(egui::Key::ArrowLeft),
                     right: i.key_down(egui::Key::D) || i.key_down(egui::Key::ArrowRight),
+                    action: i.key_down(egui::Key::Space),
                 })
             };
             for _ in 0..steps {
@@ -167,6 +168,18 @@ impl App {
         match self.presented {
             10 => {
                 self.editor.document.add(false)?;
+                let mut candidate = self.editor.document.project().clone();
+                candidate.game.logic.rules.push(tomo_game::Rule {
+                    id: "smoke_score".into(),
+                    name: "Smoke start score".into(),
+                    enabled: true,
+                    once: true,
+                    trigger: tomo_game::Trigger::Start {},
+                    conditions: vec![],
+                    actions: vec![tomo_game::Action::AddScore { amount: 1 }],
+                });
+                let revision = candidate.revision;
+                self.editor.document.apply(candidate, revision)?;
             }
             20 => {
                 self.editor.start()?;
@@ -176,10 +189,11 @@ impl App {
                     .editor
                     .game
                     .as_ref()
-                    .is_some_and(|g| g.player().position[0] > -3.);
+                    .is_some_and(|g| g.player().position[0] > -3. && g.score() == 1);
                 self.editor.stop();
                 let _ = window.request_inner_size(LogicalSize::new(1150., 740.));
             }
+            65 => self.ui.open_logic(&self.editor),
             120 => {
                 let initial = self
                     .editor
@@ -334,7 +348,7 @@ fn run(args: &[String]) -> Result<(), Problem> {
         [flag] if flag == "--help" => {
             println!(
                 "{}",
-                json!({"schema_version":1,"commands":["tomo-editor","tomo-editor --project DIRECTORY","tomo-editor --smoke-test"],"template":"reach the goal","schemas":["project v1","scene v1"]})
+                json!({"schema_version":1,"commands":["tomo-editor","tomo-editor --project DIRECTORY","tomo-editor --smoke-test"],"template":"editable reach-the-goal rules","schemas":["project v2 (v1 import)","scene v1","logic v1"],"game_logic_editor":true})
             );
             return Ok(());
         }

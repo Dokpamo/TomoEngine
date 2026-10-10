@@ -68,7 +68,10 @@ cargo run -p tomo-editor --release --locked --offline
 **Play**로 직접 조작하고 **Stop**으로 편집 상태에 돌아옵니다. **Save**에서 새 프로젝트
 폴더를 만들면, `tomo-play --project 폴더경로`로 같은 장면을 독립 실행할 수 있습니다.
 macOS 앱은 `python3 scripts/package-macos.py --editor`로 `target/Tomo Editor.app`에 생성합니다.
-첫 버전은 목적지 도착 게임 템플릿이며, 자세한 계약과 조작은 [에디터 문서](docs/EDITOR.md)에 있습니다.
+**Logic → + Space jump / + Time limit → Apply rules → Done**으로 게임 규칙도 직접 만듭니다.
+키 입력·접촉·점수 조건과 이동·승리·실패를 연결하고, Play와 독립 게임에서 같은 규칙을 실행합니다.
+예제는 `examples/projects/logic_lab`입니다. [에디터 조작](docs/EDITOR.md)과 [게임 로직 작성](docs/LOGIC.md)을 참고하세요.
+범용 Rust/스크립트 SDK와 노드 그래프는 후속입니다.
 
 ## 게임 실행
 

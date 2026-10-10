@@ -125,4 +125,6 @@ cargo run -q -p tomo-cli --locked --offline -- project validate ./MyGame
 new는 존재하지 않는 폴더에 project.tomo.json을 만든다. validate는 프로젝트/Scene/게임
 참조·수치·실제 world 구축을 검사하며 파일을 바꾸지 않는다. 두 명령은 기본 CLI에 포함되고
 GPU를 초기화하지 않는다. 에디터와 독립 플레이어가 동일 파일을 사용한다. 원자성·저장 충돌과
-한도는 [EDITOR.md](EDITOR.md), 구조 명세는 schemas/project-v1.schema.json을 따른다.
+한도는 [EDITOR.md](EDITOR.md), 구조 명세는 schemas/project-v2.schema.json과 logic-v1.schema.json을 따른다.
+기존 v1은 메모리에서 이행하고 validate는 원본을 덮어쓰지 않는다. capabilities는 프로젝트
+v2/이전 버전 import/선언적 로직 지원을 표시한다. 임의 스크립트 실행은 지원하지 않는다.

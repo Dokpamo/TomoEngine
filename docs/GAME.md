@@ -18,6 +18,7 @@ W/위는 화면 위쪽(-Z), D/오른쪽은 +X다. 키를 놓으면 수평 이동
 | 키 | 동작 |
 | --- | --- |
 | WASD / 방향키 | 상자 이동 |
+| Space | 프로젝트가 연결한 action 규칙 (기본 Box Run에는 동작 없음) |
 | R | 시작 위치에서 새 게임, 이번 실행의 최고 기록 유지 |
 | P | 일시정지 / 계속 |
 | C | 충돌체 표시 켜기 / 끄기 |
@@ -25,7 +26,8 @@ W/위는 화면 위쪽(-Z), D/오른쪽은 +X다. 키를 놓으면 수평 이동
 
 창이 포커스를 잃거나 가려지거나 최소화되면 진행과 입력을 멈춘다. 복귀 시 눌려 있던
 키를 지워서 의도하지 않은 이동을 방지한다. 크기 변경과 Retina 배율을 처리한다.
-최고 기록은 메모리에만 있으며 앱 종료 시 사라진다. 실패 제한 시간이나 목숨은 없다.
+최고 기록은 메모리에만 있으며 앱 종료 시 사라진다. 기본 Box Run에는 실패 제한 시간이 없지만,
+프로젝트의 Logic 규칙으로 타이머와 실패를 작성할 수 있다. 목숨 시스템은 없다.
 
 ![Box Run 시작 화면, 실제 Metal 렌더링](images/box-run.png)
 
@@ -105,5 +107,7 @@ Linux 창은 최신 CI의 `gpu-capture` 결과로 확인한다. Windows DX12 실
 
 에디터/CLI가 저장한 프로젝트는 `tomo-play --project DIRECTORY`로 실행한다.
 `--replay`나 `--capture`보다 앞에 `--project DIRECTORY`를 지정한다. Scene과 game의
-player/goal/speed 설정을 사용하고 R은 같은 프로젝트의 초기 장면으로 재시작한다.
+player/goal/speed와 Logic v1 규칙을 사용하고 R은 같은 프로젝트의 초기 장면으로 재시작한다.
+점수·승리/실패를 HUD에 표시한다. Replay v2의 `action`은 Space다. replay 결과에 `score`와
+최근 `rule_events`도 포함한다. 새 규칙 편집과 정확한 한도·실행 순서는 [LOGIC.md](LOGIC.md).
 폴더·문서 구조와 현재 템플릿 제약은 [EDITOR.md](EDITOR.md)를 따른다.

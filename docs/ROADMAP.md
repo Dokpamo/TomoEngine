@@ -9,8 +9,9 @@
 | M1 AI headless 기초 | R/T | JSON 장면 → 검증 → 고정 tick 실행 → JSON 상태/검사, 안전한 문서 patch, 실패 종료 코드, CI | 구현·검증 후 main 통합 |
 | M2 관찰 가능한 3D | R/T | 같은 primitive 장면을 렌더링, 카메라·디버그 collider, 지정 tick 캡처, headless 수치와 비교 | 캡처 + Box Run 대화형 창/입력/목적지/재시작 구현, Metal 실기기 검증; 모바일 후속 |
 | M2E 에디터·프로젝트 | R/T | 실제 GUI로 편집·Play/Stop·저장 후 독립 실행 | 첫 목적지 게임 템플릿 구현, 문서/GUI 입력/Metal 검증; 범용 SDK 후속 |
+| M2L 게임 로직 편집 | R/T | 에디터에서 이벤트·조건·동작 작성, 저장/미리보기/독립 실행에서 동일 규칙 사용 | 선언적 규칙 v1 구현, 자동 검사·실제 Metal 창 검증; 범용 코드 SDK 후속 |
 | M3 에셋과 캐릭터 | R/A/T | 정적 GLB/PBR 검증 후 skeleton/skinning/blending, 실제 이동/충돌, 입력 재현 테스트 | 미구현 |
-| M4 실제 게임 제작 | R/A/T | Rust 게임 SDK, 게임 UI·오디오·저장, AI 장면/코드 수정, 작업 journal·재시도·rollback, 통합 게임 테스트 | 미구현 |
+| M4 실제 게임 제작 | R/A/T | Rust 게임 SDK, 게임 UI·오디오·저장, AI 장면/코드 수정, 작업 journal·재시도·rollback, 통합 게임 테스트 | M2L 선언적 로직은 선행 구현; 범용 SDK·나머지 범위 미구현 |
 | M5 생성 서비스 | A/T | Tripo 작업/비용/라이선스/provenance 및 offline fallback, 생성 결과 검증·최적화 | 미구현 |
 | M6 5 OS 배포 | R/X/T | Windows/macOS/Linux/iOS/Android 실제 기기 실행·수명주기·입력·저장·패키징·성능 예산 | 미검증 |
 | M7 콘솔 | X | 개발자 승인/SDK/개발기기 확보 후 개별 백엔드·저장/입력/패키징·인증 | 외부 조건 대기, 미구현 |
@@ -48,7 +49,10 @@ Box Run으로 desktop 입력·물리 이동·벽·목적지·승리·재시작·
 CLI 누적 예산과 게임 수명을 분리했고 색/HUD는 물리 scene 외부의 표현 데이터로 두었다.
 소유자 요청으로 GLB보다 에디터와 게임 제작 구조를 우선했다. M2E는 프로젝트 v1, 재사용
 게임 규칙, 실제 편집 창, 트랜잭션/Undo, 충돌 감지 저장과 Play/Stop을 연결한다. 구체적인
-구현·검증·미지원 범위는 EDITOR.md를 따른다. 다음 제작 확장은 카메라/일반 entity와 visual
+구현·검증·미지원 범위는 EDITOR.md를 따른다. 소유자의 게임 로직 편집 요청은 M2E 확장과
+M4의 선행 범위인 M2L로 구체화했다. Project v2/Logic v1의 이벤트·조건·동작, 점수·종료,
+실제 접촉 이벤트, 규칙 편집/검증/Undo와 replay를 연결한다. 세부 계약은 LOGIC.md이며
+M4 전체나 임의 코드 실행 SDK의 완료를 뜻하지 않는다. 다음 제작 확장은 카메라/일반 entity와 visual
 분리, 여러 scene·prefab·게임 SDK다. 정적 GLB 가져오기·검증·렌더링은 보류된 후속 작업이다. Windows 실기기와 모바일의
 창/입력/수명주기 검증도 별도로 남는다. Box Run의 구체적 계약/테스트는 GAME.md를 따른다.
 P 작업의 다음 항목은 P1 원본 inventory/검증 fixture다. 렌더링 성공 때문에 이 항목을 닫지 않는다.

@@ -1,9 +1,15 @@
 // SPDX-License-Identifier: MIT
-//! Box Run: a small physics game, also executable through fixed-tick input replays.
+//! Shared rule-driven physics games, executable through fixed-tick input replays.
 #![forbid(unsafe_code)]
 
+mod execution;
+mod logic;
 mod replay;
 mod rules;
+pub use logic::{
+    Action, Condition, ContactKind, Key, Logic, MAX_ACTIONS, MAX_CONDITIONS, MAX_LOGIC_WORK,
+    MAX_RULES, MAX_TIMER_TICKS, Rule, RuleEvent, StartMode, Trigger,
+};
 pub use rules::GameRules;
 
 pub use replay::{Replay, ReplaySegment};
@@ -25,6 +31,8 @@ pub struct Input {
     pub left: bool,
     #[serde(default)]
     pub right: bool,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub action: bool,
 }
 
 impl Input {
@@ -43,6 +51,7 @@ pub enum Status {
     Ready,
     Playing,
     Won,
+    Lost,
 }
 
 /// A session stores only a best time in memory; restart constructs a fresh physics world.
@@ -53,6 +62,11 @@ pub struct Game {
     status: Status,
     elapsed_ticks: u32,
     best_ticks: Option<u32>,
+    score: i32,
+    previous_input: Input,
+    rule_fires: Vec<u32>,
+    recent_events: Vec<RuleEvent>,
+    failed: bool,
 }
 
 impl Game {
@@ -65,6 +79,7 @@ impl Game {
         rules.validate(&scene)?;
         let runtime = Runtime::from_scene(scene)?;
         let snapshot = runtime.snapshot()?;
+        let rule_fires = vec![0; rules.logic.rules.len()];
         Ok(Self {
             rules,
             runtime,
@@ -72,6 +87,11 @@ impl Game {
             status: Status::Ready,
             elapsed_ticks: 0,
             best_ticks: None,
+            score: 0,
+            previous_input: Input::default(),
+            rule_fires,
+            recent_events: vec![],
+            failed: false,
         })
     }
 
@@ -87,6 +107,20 @@ impl Game {
     }
     pub fn status(&self) -> Status {
         self.status
+    }
+    pub fn score(&self) -> i32 {
+        self.score
+    }
+    pub fn recent_events(&self) -> &[RuleEvent] {
+        &self.recent_events
+    }
+    pub fn rule_fires(&self, id: &str) -> u32 {
+        self.rules
+            .logic
+            .rules
+            .iter()
+            .position(|r| r.id == id)
+            .map_or(0, |i| self.rule_fires[i])
     }
     pub fn elapsed_ticks(&self) -> u32 {
         self.elapsed_ticks
@@ -115,40 +149,18 @@ impl Game {
     }
 
     pub fn step(&mut self, input: Input) -> Result<(), Problem> {
-        if self.status == Status::Won {
-            return Ok(());
+        if self.failed {
+            return Err(Problem::new(
+                "FAILED_GAME",
+                "/game",
+                "restart after a rule or physics failure",
+            ));
         }
-        let [x, z] = input.direction();
-        if self.status == Status::Ready && x == 0.0 && z == 0.0 {
-            return Ok(());
+        let result = self.advance(input);
+        if result.is_err() {
+            self.failed = true;
         }
-        self.status = Status::Playing;
-        let next = self
-            .elapsed_ticks
-            .checked_add(1)
-            .ok_or_else(|| Problem::new("LIMIT", "/ticks", "game clock overflow"))?;
-        let player = self.player();
-        // An arcade velocity controller preserves gravity and contact response. An angular
-        // servo gently returns the cube upright; it never teleports through obstacles.
-        let [qx, qy, qz, qw] = player.rotation;
-        let gain = -12.0 * if qw < 0.0 { -1.0 } else { 1.0 };
-        self.runtime.set_body_velocity(
-            &self.rules.player,
-            [
-                x * self.rules.speed,
-                player.linear_velocity[1],
-                z * self.rules.speed,
-            ],
-            [qx * gain, qy * gain, qz * gain],
-        )?;
-        self.snapshot = self.runtime.step()?;
-        self.elapsed_ticks = next;
-        let player = self.player();
-        if self.rules.reached(self.scene(), player.position) {
-            self.status = Status::Won;
-            self.best_ticks = Some(self.best_ticks.map_or(next, |best| best.min(next)));
-        }
-        Ok(())
+        result
     }
 }
 

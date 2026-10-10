@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 //! Editor session: isolated play world plus a versioned authoring document.
 #![forbid(unsafe_code)]
+mod logic_ui;
 pub mod ui;
 use tomo_game::{Game, Input};
 use tomo_project::{Document, Project, ProjectFile};

@@ -1,8 +1,9 @@
 # Tomo Editor와 게임 프로젝트
 
 첫 제작 흐름은 **프로젝트 생성 → 장면 편집 → Play → Stop → 저장 → 독립 게임 실행**이다.
-현재 게임 템플릿은 Box Run의 ‘플레이어가 목적지에 도착하기’ 규칙 하나다. 새로운 프로젝트와
-장애물 배치, 형상·물리 속성, 플레이어/목적지 참조, 이동 속도는 편집할 수 있다.
+기본 템플릿은 Box Run이며, **Logic**에서 이동·목적지 승리를 포함한 게임 규칙을 편집한다.
+새로운 프로젝트와 장애물 배치, 형상·물리 속성, 플레이어/목적지 참조, 이동 속도와
+키 입력·접촉·타이머·점수·승리/실패 규칙을 만들 수 있다. 조작과 계약은 [LOGIC.md](LOGIC.md).
 범용 Rust 게임 SDK, 스크립트 편집기, GLB 에셋 브라우저는 아직 없다.
 
 ## 실행
@@ -42,7 +43,8 @@ UI는 현재 영어이며 기본 폰트의 문자 지원은 제한적이다. 프
 | Cmd/Ctrl+S | 저장 |
 | Game settings | 프로젝트 이름, player ID, goal ID, 이동 속도 |
 | Play / Pause / Stop | 독립 world 생성 / 중지 / world 폐기 후 편집 장면 복원 |
-| 플레이 중 WASD / 방향키 | 기존 물리 기반 속도 컨트롤러로 이동 |
+| Logic | 이벤트·조건·동작 초안 작성 → Apply rules → Done. Apply는 하나의 Undo |
+| 플레이 중 WASD / 방향키 / Space | 현재 규칙에 연결한 방향 입력과 action 입력 |
 
 플레이 모드에서는 문서 속성을 수정하지 않는다. Stop은 게임 진행 결과를 문서에 기록하지
 않으며, 재실행은 처음부터다. 에디터 카메라는 세션의 관찰 설정으로 파일에 저장하지 않는다.
@@ -64,16 +66,18 @@ cargo run -q -p tomo-play --locked --offline -- --project ./MyGame --replay exam
 
 ```text
 MyGame/
-  project.tomo.json     프로젝트 v1: 이름, revision, Scene v1, game 설정
+  project.tomo.json     프로젝트 v2: 이름, revision, Scene v1, game 설정 + Logic v1
 ```
 
 작동하지 않는 assets/scripts 폴더나 빈 코드를 만들지 않는다. 장면과 규칙을 한 문서에 저장해
-두 파일 사이의 불일치를 피한다. `schemas/project-v1.schema.json`은 구조 설명이고, 의미 검사는
+두 파일 사이의 불일치를 피한다. `schemas/project-v2.schema.json`과 `logic-v1.schema.json`은 구조 설명이고, 의미 검사는
 CLI/Rust 검증기가 담당한다. 파일 최대 1 MiB, 최대 256 bodies, unknown 필드/버전 거부,
 유한 수치·고유 ID·참조·단위 quaternion과 실제 physics world 구축을 확인한다.
 게임은 dynamic solid player와 axis-aligned static sensor box goal을 요구한다. 목표 크기는
 플레이어 bounding sphere보다 커야 하며, 이동 속도는 0.1..30m/s다. 외부 코드나 provider는 실행하지 않는다.
+기존 Project v1을 열면 파일을 쓰지 않고 메모리에서 v2로 이행하며, Save부터 v2로 기록한다.
 replay는 36000 tick/1024 segment 및 body 수 제곱 × 요청 tick <= 5,000,000을 실행 전에 검사한다.
+규칙 평가에도 별도의 5,000,000 작업 예산을 적용한다. 자세한 호환성·한도는 LOGIC.md를 따른다.
 
 ## 변경·저장·복구 계약
 
@@ -106,8 +110,12 @@ headless egui 입력 검사는 실제 버튼과 pointer event로 추가·복제�
 닫기 확인, 드래그를 수행한다. picking은 회전 box/sphere, 깊이, 편집 평면을 검사한다.
 
 `--smoke-test`는 실제 egui atlas/mesh와 3D viewport를 같은 wgpu surface에 표시하고,
-물체 추가·플레이 이동·정지 후 초기 장면 보존·resize와 120회 present를 확인한다. 30초 내
+물체 추가·작성한 시작 점수 규칙·플레이 이동·정지 후 초기 장면 보존·Logic 창·resize와 120회 present를 확인한다. 30초 내
 완료하지 못하면 오류다. 자동 smoke는 OS 키보드를 생성하는 검사가 아니다.
 2026-10-10 로컬 Apple M4/macOS Metal 창에서 선택·드래그·Undo·키보드 이동·정지·저장·재열기를
 직접 확인했다. Linux Vulkan 창은 최신 CI 결과로 구분하고, Windows DX12 실기기/모바일은
 아직 검증하지 않았다. 물리 원본 동등성 범위는 이 기능으로 확대되지 않는다.
+
+2026-10-10 게임 로직 확장에서 실제 Metal 창으로 규칙 추가, 타이머 tick 수정, Apply,
+Space 점프, 시작 점수와 제한시간 실패, 규칙별 실행 횟수를 확인했다. 자동 입력 검사도
+규칙 초안 실패/충돌/닫기 보호와 Apply/저장/재열기/Undo 및 동일 입력 비교를 포함한다.

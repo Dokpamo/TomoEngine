@@ -38,6 +38,7 @@ pub struct EditorUi {
     file_dialog: Option<FileDialog>,
     drag: Option<Drag>,
     filter: String,
+    logic: crate::logic_ui::LogicUi,
 }
 impl Default for EditorUi {
     fn default() -> Self {
@@ -54,6 +55,7 @@ impl Default for EditorUi {
             file_dialog: None,
             drag: None,
             filter: String::new(),
+            logic: Default::default(),
         }
     }
 }
@@ -72,6 +74,9 @@ pub fn theme(ctx: &Context) {
     });
 }
 impl EditorUi {
+    pub fn open_logic(&mut self, editor: &Editor) {
+        self.logic.open(editor);
+    }
     pub fn options(&self) -> CaptureOptions {
         let w = self.viewport.width().max(1.);
         let h = self.viewport.height().max(1.);
@@ -118,7 +123,7 @@ impl EditorUi {
         style
     }
     pub fn blocked(&self) -> bool {
-        self.file_dialog.is_some() || self.close_requested
+        self.file_dialog.is_some() || self.close_requested || self.logic.open
     }
     fn file(&mut self, action: FileAction, editor: &Editor) {
         let path = editor
@@ -175,6 +180,13 @@ impl EditorUi {
         }
     }
     pub fn show(&mut self, ctx: &Context, editor: &mut Editor) {
+        if self.close_requested && self.logic.open {
+            self.close_requested = false;
+            editor.report(
+                Ok(()),
+                "Finish or discard the game rules draft before closing the editor.",
+            );
+        }
         if ctx.input(|i| i.pointer.primary_pressed()) && editor.game.is_none() && !self.blocked() {
             editor.document.begin_gesture();
         }
@@ -240,6 +252,13 @@ impl EditorUi {
                     }
                 });
                 ui.separator();
+                if ui
+                    .add_enabled(!self.blocked(), egui::Button::new("Logic"))
+                    .clicked()
+                {
+                    editor.document.end_gesture();
+                    self.logic.open(editor);
+                }
                 if editing {
                     if ui
                         .add_enabled(
@@ -270,7 +289,12 @@ impl EditorUi {
                         editor.report(Ok(()), "Preview stopped. Edit scene restored.");
                     }
                     if let Some(game) = &editor.game {
-                        ui.label(format!("{:?}   {:.2}s", game.status(), game.seconds()));
+                        ui.label(format!(
+                            "{:?}   {:.2}s   Score {}",
+                            game.status(),
+                            game.seconds(),
+                            game.score()
+                        ));
                     }
                 }
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -367,7 +391,7 @@ impl EditorUi {
                 ui.add_enabled_ui(editing && !self.blocked(),|ui| {self.inspector(ui,editor);});
                 ui.add_space(16.);ui.separator();
                 ui.collapsing("Game settings",|ui| {
-                    ui.label("Template: reach the goal");
+                    ui.label("Roles and movement tuning (rules: Logic button)");
                     ui.add_enabled_ui(editing && !self.blocked(),|ui| {
                         let mut candidate=editor.document.project().clone();
                         let mut changed=false;
@@ -388,7 +412,7 @@ impl EditorUi {
                     });
                     ui.small("The player is dynamic and solid. The goal is a static, unrotated sensor box large enough to contain the player.");
                 });
-                ui.add_space(16.);ui.small(format!("Project v1 / revision {}",editor.document.project().revision));
+                ui.add_space(16.);ui.small(format!("Project v2 / revision {}",editor.document.project().revision));
                 if let Some(file)=&editor.file {ui.small(file.path().display().to_string());} else {ui.small("Unsaved project");}
             });
         });
@@ -404,10 +428,10 @@ impl EditorUi {
             self.viewport=rect;
             if !self.blocked() { self.interact(ctx,editor,&response); }
             let painter=ui.painter_at(rect);
-            let hint=if editing {"Drag object: move X/Z   |   Right drag: orbit   |   Middle drag: pan   |   Scroll: zoom"} else {"WASD / arrows: move   |   Pause to inspect   |   Stop to return to editing"};
+            let hint=if editing {"Drag object: move X/Z   |   Right drag: orbit   |   Middle drag: pan   |   Scroll: zoom"} else {"WASD / arrows: move   |   Space: action   |   Logic: inspect rules   |   Stop: edit"};
             painter.text(rect.left_bottom()+Vec2::new(14.,-18.),egui::Align2::LEFT_BOTTOM,hint,egui::FontId::proportional(12.),Color32::from_gray(210));
-            if let Some(game)=&editor.game {if game.status()==tomo_game::Status::Won {
-                painter.text(rect.center(),egui::Align2::CENTER_CENTER,"DESTINATION REACHED",egui::FontId::proportional(30.),ACCENT);
+            if let Some(game)=&editor.game {if matches!(game.status(),tomo_game::Status::Won | tomo_game::Status::Lost) {
+                painter.text(rect.center(),egui::Align2::CENTER_CENTER,if game.status()==tomo_game::Status::Won {"YOU WIN"} else {"GAME OVER"},egui::FontId::proportional(30.),ACCENT);
             }}
         });
         if ctx.input(|i| i.pointer.primary_released()) {
@@ -415,6 +439,7 @@ impl EditorUi {
             self.drag = None;
         }
         self.dialogs(ctx, editor);
+        self.logic.show(ctx, editor);
     }
     fn inspector(&mut self, ui: &mut egui::Ui, editor: &mut Editor) {
         let Some(id) = editor.selected.clone() else {
