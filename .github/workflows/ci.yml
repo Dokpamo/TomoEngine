@@ -1,4 +1,4 @@
-name: Rust foundation
+name: Rust physics
 
 on:
   push:
@@ -14,6 +14,7 @@ concurrency:
 
 jobs:
   test:
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -33,16 +34,23 @@ jobs:
           persist-credentials: false
       - name: Install Rust
         run: rustup toolchain install ${{ matrix.toolchain }} --profile minimal
-      - name: Default scalar tests
+      - name: Default tests
         run: cargo +${{ matrix.toolchain }} test --workspace --locked --offline
       - name: FMA tests
         run: cargo +${{ matrix.toolchain }} test --workspace --all-features --locked --offline
-      - name: Release tests
+      - name: Release default tests
+        run: cargo +${{ matrix.toolchain }} test --workspace --release --locked --offline
+      - name: Release FMA tests
         run: cargo +${{ matrix.toolchain }} test --workspace --release --all-features --locked --offline
       - name: Query example
         run: cargo +${{ matrix.toolchain }} run -p tomo-physics --example raycast --locked --offline
+      - name: Falling box
+        run: cargo +${{ matrix.toolchain }} run -p tomo-physics --example falling_box --release --locked --offline
+      - name: Stack
+        run: cargo +${{ matrix.toolchain }} run -p tomo-physics --example stack --release --locked --offline
 
   quality:
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6

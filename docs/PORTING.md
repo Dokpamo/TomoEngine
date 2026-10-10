@@ -1,116 +1,122 @@
 # Jolt → Rust 이식 상태와 설계 계약
 
-## 목표와 완료 기준
+## 목표와 현재 상태
 
-TomoEngine의 목표는 Jolt Physics를 Rust로 직접 구현하는 것입니다. 바인딩을
-추가하거나 Rapier로 대체하는 것은 이 프로젝트의 목표 달성으로 계산하지 않습니다.
-기준은 `upstream/jolt.toml`에 고정된 Jolt v5.6.0 commit입니다.
+최종 목표는 고정된 Jolt v5.6.0의 전체 범위를 C++ 바인딩·FFI 없이 Rust로 직접
+이식하는 것입니다. 단순한 독립 엔진 제작, Rapier 연결, 또는 낙하 데모 성공을
+이 목표의 달성으로 취급하지 않습니다.
 
-다음 네 기준을 구분합니다.
+현재는 foundation 수학·기하에 **단일 스레드 primitive 강체 런타임**이 연결된 단계입니다.
+구와 회전 상자의 충돌·마찰·반발, 수면, 거리 관절, 힘·토크 등을 실제로 계산합니다.
+렌더러·에디터는 없으며 예제는 headless입니다. 전체 이식 완료율을 임의로 추정하지 않습니다.
 
-1. **소스 구현**: 실제 Rust 알고리즘이 존재하며 FFI/C++ 실행에 의존하지 않음.
-2. **동작 검증**: 해당 모듈의 정상·퇴화·경계 사례를 테스트함.
-3. **원본 동등성**: 고정된 C++ reference와 differential test로 비교함.
-4. **성능/결정론**: 같은 장면·하드웨어·설정의 측정 및 별도의 재현성 검사.
+다음 네 기준은 독립적입니다.
 
-현재는 아래의 작은 foundation 범위만 구현되어 있습니다. 테스트가 있다고 해서
-3번과 4번까지 달성한 것으로 취급하지 않습니다. 이 문서는 퍼센트 완료율을 추정하지
-않으며, 물리엔진 전체가 동작한다고 주장하지 않습니다.
+1. 실제 Rust 구현이 존재하고 C++ 실행에 의존하지 않는가.
+2. 해당 기능의 정상·퇴화·경계 동작이 테스트되었는가.
+3. 고정된 C++ reference와 differential test로 동등성을 확인했는가.
+4. 같은 하드웨어·설정에서 성능 및 필요한 결정론 수준을 측정했는가.
 
-## 실제 구현 범위
+현재 테스트 성공은 3·4번의 달성을 뜻하지 않습니다.
 
-| 모듈 | 포함 | 미포함 |
+## 구현 범위 및 출처 구분
+
+| 모듈 | 포함 | 미포함 / 원본과의 차이 |
 | --- | --- | --- |
-| Vec3 | scalar f32 연산, 내적, 외적, 길이, normalized-or | SIMD 저장/명령, double precision, 전체 Jolt API |
-| FindRoot | f32, 선형/상수/이차 방정식, FMA 선택 | f64 specialization, 임의 정밀도 |
-| Aabb | empty, union, intersection, containment, overlap, support, scale, translate, distance | matrix transforms, plane overlap, supporting faces, double rounding |
-| Ray | 단일 sphere/triangle/AABB 교차 | shape casts, 4-wide SIMD, CCD, shape dispatch |
-| BodyId | 32-bit representation, 비교/해시, 검증된 생성 | BodyManager, allocation, locks, object lifetime tracking |
+| math, aabb, ray, body_id | 기존 scalar foundation 및 packed ID | 전체 SIMD/API, f64 경로 |
+| rotation | quaternion 연산, 회전 갱신, Transform | 전체 Jolt math, SIMD 레이아웃 |
+| shape | sphere / sharp box, 질량·관성·경계·ray | convex radius 및 나머지 형상 |
+| body | 힘·토크 적분, 회전, gyroscopic 옵션, checked 설정·슬롯 저장소 | Jolt 동시성 BodyManager, 전체 MotionProperties |
+| broad_phase | 단일 축 sweep-and-prune | 자체 실행용 구현. Jolt broad-phase tree 이식이 아님 |
+| collision | sphere/sphere, sphere/box, OBB SAT, 접촉점 구성 | 자체 primitive 통합. GJK/EPA·전체 dispatch가 아님 |
+| solver | source-derived scalar 축 제약·스프링 수식, 접촉 조립 | 자체 cache·friction projection. 전체 ContactConstraintManager가 아님 |
+| joint | 거리 제약·거리 스프링 | 전체 DistanceConstraint API, 나머지 관절·모터 |
+| world | substeps, 단일 스레드 솔버 순서, islands, sleeping, events, ray cast | 자체 조립부. Jolt PhysicsSystem 전체 이식이 아님 |
 
-## 원본과 의도적으로 다른 부분
+`upstream/jolt.toml`은 기존 foundation 파일의 blob 추적 manifest입니다. 런타임 파일의
+헤더에 기록된 Body/MotionProperties/AxisConstraintPart/SpringPart 등의 참조에 대해
+**같은 수준의 파일·함수·blob 대응표와 원본 대조를 추가하는 작업이 남아 있습니다.**
+헤더의 출처 표기만으로 전체 함수의 정확한 원본 동등성을 검증했다고 주장하지 않습니다.
 
-- Rust식 모듈명/메서드명과 `Option`/`Roots` 반환 타입을 사용합니다. C++ ABI 및
-  소스 수준의 drop-in 호환성을 제공하지 않습니다.
-- Vec3는 세 개의 f32만 저장합니다. Jolt의 16-byte SIMD layout과 다릅니다.
-- 초기 scalar 계산의 이해·검증을 우선합니다. 성능을 원본 수준이라고 주장하지 않습니다.
-- Vec3 component min/max는 Rust의 f32 min/max입니다. NaN 및 signed-zero tie 처리가
-  일부 Jolt SIMD 경로와 다를 수 있습니다. NaN/무한대/overflow 입력은 지원 계약 밖입니다.
-- normalized-or는 원본처럼 length-squared <= f32::MIN_POSITIVE일 때 fallback을
-  반환합니다. NaN이나 overflow를 고치는 일반-purpose normalization 함수가 아닙니다.
-- Aabb의 overlaps/scale/ray query는 invalid/empty bounds를 명시적으로 거부하거나
-  empty 상태로 유지합니다. 원본 scalar AABox/RayAABox의 invalid-input 처리를 강화합니다.
-- BodyId 생성자의 원본 debug assertion은 Rust의 Option으로 바꿔 release에서도
-  reserved bit와 index 범위를 검사합니다. INVALID sentinel은 raw 생성으로 허용합니다.
-- BodyId sequence는 원본처럼 8 bit입니다. 무한한 stale-handle 방지나 thread safety를
-  보장하지 않습니다. 미래 BodyManager는 slot reuse, sequence wrap, access ownership을
-  별도로 설계해야 합니다.
-- 이식 대상은 현재 저수준 kernel입니다. 외부 파일/네트워크 입력을 직접 넣지 말고
-  미래의 checked boundary에서 유한성, 크기, shape 유효성을 검사해야 합니다.
+전체 이식 목표에서는 자체 broad phase와 조립부를 임시 기반으로 구분합니다.
+해당 기능이 존재한다는 이유로 대응하는 Jolt 원본 클래스의 이식 체크박스를 닫지 않습니다.
 
-## 부동소수점 계약
+## 공개 API와 객체 수명
 
-기본 경로: scalar f32, Jolt의 non-FMA `DifferenceOfProducts`, `(x + y) + z` reduction.
-`fma` feature: Jolt의 보정된 difference-of-products에 `f32::mul_add`를 사용합니다.
-이 feature는 SIMD 구현이나 전체 cross-platform determinism 모드가 아닙니다.
+`PhysicsSystem`이 Body를 소유하고 `body(id)`는 읽기 전용 참조를 반환합니다.
+변경은 world API를 통해 캐시 무효화·wake-up 규칙을 거칩니다. BodyId는 하나의 world에
+속하는 ID이며 서로 다른 world의 ID를 혼용해서는 안 됩니다.
 
-테스트 계약은 유한한 입력이며 중간값이 f32 범위를 초과하지 않는 경우입니다.
-반지름은 0 이상이어야 합니다. 극단적인 world scale, overflow, NaN/Inf 입력,
-FP flush-to-zero/rounding-mode 변경은 현재 지원하지 않습니다.
+BodyId 자체는 23-bit index, 8-bit sequence, reserved bit 규약을 보존합니다.
+BodyArena는 sequence가 wrap되어 오래된 ID가 재사용 슬롯과 충돌하기 전에 슬롯을
+퇴역시킵니다. 생성·제거를 매우 오래 반복하면 슬롯 저장 공간이 늘 수 있습니다.
+이 정책은 Jolt의 동시성 객체 수명 구현과 동일하지 않습니다.
 
-FindRoot는 단순한 근의 공식으로 치환하지 않습니다. `det == 0`이어도 `q != 0`이면
-원본은 동일한 근을 두 개 반환할 수 있습니다. `Sign(-0.0)`도 원본처럼 +1입니다.
+## 시간 및 시뮬레이션 계약
 
-RaySphere/RayTriangle의 miss는 f32::MAX입니다. RaySphere는 내부 시작을 0으로
-처리하지만 RayAABox는 음수 entry를 유지합니다. 정지 ray가 유효한 AABB 안에 있으면
-entry가 -f32::MAX일 수 있습니다. 이는 저수준 slab query의 원본 규약입니다.
+- `update(dt)`는 유한한 `1e-6 <= dt <= 0.25`를 받습니다. 나눈 substep 역시 최소
+  1e-6이어야 합니다. 설정상 substeps는 1~64입니다. 고정 dt 사용을 권장합니다.
+- 잘못된 dt는 상태·시각·누적된 힘을 변경하기 전에 거부합니다.
+- 누적 힘과 토크는 모든 substep에 적용한 후 update 끝에서 한 번 비웁니다.
+- 입력 검증 실패와 실행 중 `NumericalFailure`는 다릅니다. 후자는 이전 상태로
+  되돌리는 rollback이 아니라 fail-stop입니다. 실패한 world는 폐기해야 합니다.
+- 현재 speculative contact는 제한된 거리의 선행 접촉 처리입니다. **CCD가 아닙니다.**
+  빠른 물체·얇은 벽·큰 dt에서 tunneling을 방지한다고 보장하지 않습니다.
+- Static/Kinematic/Dynamic을 구분합니다. 관절·접촉 후보의 지원 범위는 코드와 테스트를
+  기준으로 하며 모든 Jolt collision-pair 정책이 재현된 것은 아닙니다.
 
-## 테스트와 자동화
+## 수치 계약과 차이
 
-현재 회귀 테스트는 직접 작성한 분석적 expected values와 고정 seed invariant
-검사입니다. upstream UnitTests 전체를 가져오거나 C++ 원본 전체와 비교한 것이 아닙니다.
+Foundation 기본 경로는 scalar f32 및 non-FMA difference-of-products입니다.
+`fma` feature는 보정된 difference-of-products에만 적용되며 엔진 전체의 SIMD나
+cross-platform determinism 모드가 아닙니다.
 
-CI는 Linux/Windows/macOS, Rust 1.85.0 및 Linux stable에서 debug/default,
-FMA, release/FMA, example을 실행하도록 구성합니다. 별도 quality job은 rustfmt,
-Clippy, rustdoc, dependency/native-source policy를 검사합니다.
+Vec3는 3개의 f32이며 Jolt SIMD Vec3의 16-byte layout과 다릅니다. component min/max는
+Rust f32 규칙을 사용하므로 NaN·signed-zero tie 처리가 일부 Jolt SIMD 경로와 다를 수
+있습니다. 저수준 foundation kernel은 유한하고 중간 연산이 overflow하지 않는 입력을
+전제로 합니다. checked world API와 raw math API의 보장 수준을 혼동하지 않습니다.
 
-CI의 존재와 실행 성공은 다릅니다. 실제 run 로그로 상태를 확인해야 합니다.
+normalized-or의 fallback 기준은 squared length <= f32::MIN_POSITIVE입니다.
+FindRoot는 cancellation-resistant 공식을 유지하며 det == 0에서도 q != 0이면
+같은 근을 두 개 반환할 수 있고 Sign(-0.0)은 +1입니다.
 
-## 다음 구현 순서
+RaySphere/RayTriangle의 miss는 f32::MAX입니다. 방향은 정규화하지 않습니다.
+raw RayAABox는 내부 시작 시 음수 entry를 유지하며 정지 ray가 내부에 있으면
+-f32::MAX entry를 반환할 수 있습니다. **world ray cast는 별도 segment API**이며
+기본 max_fraction=1, 내부 시작은 fraction=0으로 처리합니다.
 
-### 1. 수학·기하 기반 확장
+Aabb의 invalid/empty 처리와 BodyId 생성자의 release 검사 등 foundation의 강화된
+검사는 원본의 일부 debug-only/invalid-input 동작과 의도적으로 다릅니다.
+부동소수점 환경 변경, 무제한 world scale, 극단적 질량비, 전체 플랫폼 간 비트 동등성은
+검증되지 않았습니다. 각 공개 설정의 실제 허용 범위는 checked constructor를 따릅니다.
 
-Quat/Mat44/DVec3, plane/sphere/capsule, closest point(line/triangle/tetrahedron),
-support mappings와 convex hull. 각 함수는 원본 위치, 테스트, 차이 기록과 함께 추가합니다.
+## 테스트·CI
 
-### 2. Narrow phase
+현재 검증은 분석적 기대값, 고정 seed 기하 invariant, 독립적인 꼭짓점 투영 OBB 검사,
+낙하·쌓기·마찰·반발·관절·수면·센서 장면 및 API 경계 회귀 테스트입니다.
+독립 투영 검사는 C++ Jolt oracle 비교가 아닙니다.
 
-GJK/EPA, penetration depth, contact generation/manifolds, sphere/box/capsule/triangle,
-mesh/heightfield/compound shape dispatch. 퇴화 도형과 매우 가까운 접촉부터 검증합니다.
+일반 CI에서 Linux/Windows/macOS의 Rust 1.85.0과 Linux stable을 검사합니다.
+각 환경에서 default/FMA의 debug 및 release 테스트와 raycast/falling_box/stack 예제를
+실행합니다. 별도 quality job은 formatting, Clippy, rustdoc, 의존성 정책을 확인합니다.
 
-### 3. Body와 공간 구조
+CI는 읽기 전용이며 테스트 중 코드를 자동 수정·커밋하지 않습니다. formatter bot이
+별도 커밋을 만든 뒤 새 검증이 action_required로 남는 혼동을 줄이기 위해 임시
+format-runtime workflow를 일반 CI로 통합했습니다. 승인·브랜치 보호 정책은 변경하지
+않습니다. CI가 존재하는 것과 해당 커밋에서 성공한 것은 별개입니다.
 
-Body/MotionProperties, shape ownership, mass/inertia, BodyManager, broad-phase tree,
-layers/filters, collectors. Rust ownership 및 세대 재사용 정책을 실제 접근 API에 반영합니다.
+## 남은 전체 이식 작업
 
-### 4. 단일 스레드 강체 시뮬레이션
+1. 런타임의 원본 파일·함수 대응표 확대와 고정 C++ reference fixtures / differential tests.
+2. Mat44/DVec3, closest point, support mappings, convex hull, GJK/EPA, penetration depth.
+3. Capsule/convex/mesh/heightfield/compound 및 전체 shape dispatch와 contact generation.
+4. Jolt의 broad-phase tree, BodyManager/MotionProperties, contact cache·island·solver
+   전체 동작을 직접 이식하고 현재 자체 통합부와의 차이를 줄이는 작업.
+5. CCD, 전체 constraints/joints/motors, Job System, 병렬화, SIMD, 메모리·캐시 최적화.
+6. Character/CharacterVirtual, vehicles, ragdolls, soft bodies, serialization 및 기준
+   버전의 나머지 기능. GPU compute/hair 관련 범위도 누락하지 않고 별도로 추적.
+7. upstream UnitTests/PerformanceTest 대응표, fuzzing, 장시간 장면 회귀, 모바일·Web
+   검증, 동일 조건 벤치마크와 결정론 보고서.
 
-Contact cache, island building, velocity/position solver, restitution/friction,
-sleeping/activation, fixed-step integration, CCD 및 constraint 계열.
-먼저 떨어지는 상자/쌓기/관절 장면의 reference 비교를 만들고 병렬화를 추가합니다.
-
-### 5. 병렬화와 성능
-
-Job dependencies, deterministic ordering, scheduling, SIMD, allocation/cache layout.
-검증된 scalar 경로를 reference로 유지합니다. Rust라고 더 빠르다는 가정은 하지 않습니다.
-
-### 6. 상위 기능 및 v5.6 전체 범위
-
-Character/CharacterVirtual, vehicles, ragdolls, soft bodies, serialization,
-GPU compute/hair 등 기준 버전의 나머지 기능을 별도 추적합니다.
-이 목록에 있다고 구현된 것이 아닙니다. 누락을 숨기기 위해 완료 기준을 축소하지 않습니다.
-
-### 7. 검증 확대
-
-upstream UnitTests/PerformanceTest 대응표, 고정 reference fixtures,
-differential testing, fuzzing, 장시간 장면 회귀, 플랫폼별 성능·결정론 보고서.
-Reference 실행은 검증 도구에만 한정하고 Cargo build/runtime dependency로 넣지 않습니다.
+C++ reference는 검증용으로만 사용할 수 있으며 엔진의 Cargo build/runtime 의존성이
+되어서는 안 됩니다. 기능 누락을 숨기기 위해 전체 이식 목표를 축소하지 않습니다.
