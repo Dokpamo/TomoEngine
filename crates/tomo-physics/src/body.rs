@@ -426,9 +426,7 @@ impl BodyArena {
     }
 
     pub fn remove(&mut self, id: BodyId) -> Option<Body> {
-        if self.get(id).is_none() {
-            return None;
-        }
+        self.get(id)?;
         let index = id.index() as usize;
         let slot = &mut self.slots[index];
         let removed = slot.body.take();
