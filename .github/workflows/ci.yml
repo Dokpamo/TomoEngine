@@ -62,8 +62,10 @@ jobs:
           cargo +${{ matrix.toolchain }} run -q -p tomo-play --locked --offline -- --project target/ci-game --replay examples/replays/box_run_win.replay.json
       - name: Compiled Rust SDK game acceptance
         run: cargo +${{ matrix.toolchain }} run -q -p tomo-sdk-demo --locked --offline -- --headless
-      - name: Code edit transaction tests
-        run: python3 scripts/test-code-edit.py
+      - name: Tool transaction and SDK selection tests
+        run: |
+          python3 scripts/test-code-edit.py
+          python3 scripts/test-packaging.py
       - name: Box Run fixed input acceptance
         run: cargo +${{ matrix.toolchain }} run -q -p tomo-play --locked --offline -- --replay examples/replays/box_run_win.replay.json
       - name: Authored logic project acceptance

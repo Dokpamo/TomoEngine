@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import platform
 import plistlib
+import re
 import shutil
 import subprocess
 import sys
@@ -18,6 +19,16 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def run(args):
     return subprocess.check_output(args, cwd=ROOT, text=True)
+
+def versioned_directory(root, prefix, required):
+    candidates = []
+    for path in root.iterdir():
+        match = re.fullmatch(re.escape(prefix) + r'(\d+(?:\.\d+)*)', path.name)
+        if match and path.is_dir() and all((path / name).is_file() for name in required):
+            candidates.append((tuple(int(part) for part in match[1].split('.')), path))
+    if not candidates:
+        raise ValueError(f'no complete released SDK component found in {root}')
+    return max(candidates)[1]
 
 def android(args, normalized, build, profile):
     sdk = Path(args.sdk or os.environ.get('ANDROID_HOME', os.environ.get('ANDROID_SDK_ROOT', ''))).resolve()
@@ -36,9 +47,8 @@ def android(args, normalized, build, profile):
                AR_aarch64_linux_android=str(llvm / 'bin/llvm-ar'),
                CARGO_TARGET_AARCH64_LINUX_ANDROID_RUSTFLAGS='-C link-arg=-Wl,-z,max-page-size=16384')
     subprocess.run(build + ['-p', 'tomo-android', '--target', 'aarch64-linux-android'], cwd=ROOT, env=env, check=True, stdout=sys.stderr)
-    build_tools = sorted((sdk / 'build-tools').iterdir(), key=lambda p: tuple(int(x) for x in p.name.split('.')))[-1]
-    platforms = sorted((sdk / 'platforms').glob('android-*'), key=lambda p: int(p.name.split('-')[1]))
-    android_jar = platforms[-1] / 'android.jar'
+    build_tools = versioned_directory(sdk / 'build-tools', '', ['aapt.exe' if os.name == 'nt' else 'aapt', 'zipalign.exe' if os.name == 'nt' else 'zipalign', 'apksigner.bat' if os.name == 'nt' else 'apksigner'])
+    android_jar = versioned_directory(sdk / 'platforms', 'android-', ['android.jar']) / 'android.jar'
     output = args.output.resolve()
     output.mkdir()
     with tempfile.TemporaryDirectory(prefix='android-package-', dir=ROOT / 'target') as tmp:
