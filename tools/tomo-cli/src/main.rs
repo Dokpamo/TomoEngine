@@ -49,6 +49,7 @@ fn dispatch(args: &[String]) -> Result<(Value, u8), Problem> {
                 "rendering": cfg!(feature = "render"),
                 "rendering_requires_adapter": true,
                 "interactive_window": false,
+                "companion_game": "cargo run -p tomo-play --locked --offline",
                 "autonomous_agent": false,
                 "tripo": false,
                 "jolt_complete": false,

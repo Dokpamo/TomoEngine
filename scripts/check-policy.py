@@ -12,6 +12,7 @@ EXPECTED = {
     "tomo-runtime": {"serde", "tomo-scene", "tomo-physics"},
     "tomo-render": {"serde", "serde_json", "tomo-scene", "tomo-runtime", "wgpu", "pollster", "png"},
     "tomo-cli": {"serde_json", "tomo-scene", "tomo-runtime", "tomo-render"},
+    "tomo-play": {"serde", "serde_json", "tomo-scene", "tomo-runtime", "tomo-render", "winit"},
 }
 REVIEWED = {
     "serde", "serde_core", "serde_derive", "serde_json", "itoa", "memchr", "ryu",
@@ -35,9 +36,10 @@ def main():
         if actual != expected:
             raise ValueError(f"{name}: unreviewed dependency boundary: {actual}")
         directory = pathlib.Path(package["manifest_path"]).parent
-        entry = directory / "src" / ("main.rs" if name == "tomo-cli" else "lib.rs")
-        if "#![forbid(unsafe_code)]" not in entry.read_text(encoding="utf-8"):
-            raise ValueError(f"{name}: missing unsafe policy")
+        for target in package["targets"]:
+            if any(kind in ("lib", "bin") for kind in target["kind"]):
+                if "#![forbid(unsafe_code)]" not in pathlib.Path(target["src_path"]).read_text(encoding="utf-8"):
+                    raise ValueError(f"{name}: missing unsafe policy")
         for path in directory.rglob("*"):
             if path.is_file() and (path.name == "build.rs" or path.suffix in NATIVE_SUFFIXES):
                 raise ValueError(f"unreviewed native/build source: {path}")
@@ -70,7 +72,7 @@ def main():
         pending.extend(nodes[identity]["dependencies"])
     for path in sorted((ROOT / "schemas").glob("*.json")):
         json.loads(path.read_text(encoding="utf-8"))
-    print(f"PASS: five crate boundaries; zero physics dependencies; {len(external)} pinned external packages; GPU isolated from core")
+    print(f"PASS: {len(local)} crate boundaries; zero physics dependencies; {len(external)} pinned external packages; GPU isolated from core")
 
 
 if __name__ == "__main__":

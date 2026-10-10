@@ -1,0 +1,169 @@
+{
+  "schema_version": 1,
+  "revision": 0,
+  "name": "Box Run",
+  "gravity": [
+    0,
+    -9.81,
+    0
+  ],
+  "fixed_dt": 0.016666666666666666,
+  "bodies": [
+    {
+      "id": "floor",
+      "motion": "static",
+      "shape": {
+        "type": "box",
+        "half_extents": [
+          7.4,
+          0.4,
+          6.4
+        ]
+      },
+      "position": [
+        0,
+        -0.4,
+        0
+      ]
+    },
+    {
+      "id": "west",
+      "motion": "static",
+      "shape": {
+        "type": "box",
+        "half_extents": [
+          0.15,
+          0.5,
+          6.2
+        ]
+      },
+      "position": [
+        -7.15,
+        0.5,
+        0
+      ]
+    },
+    {
+      "id": "east",
+      "motion": "static",
+      "shape": {
+        "type": "box",
+        "half_extents": [
+          0.15,
+          0.5,
+          6.2
+        ]
+      },
+      "position": [
+        7.15,
+        0.5,
+        0
+      ]
+    },
+    {
+      "id": "north",
+      "motion": "static",
+      "shape": {
+        "type": "box",
+        "half_extents": [
+          7.3,
+          0.5,
+          0.15
+        ]
+      },
+      "position": [
+        0,
+        0.5,
+        -6.15
+      ]
+    },
+    {
+      "id": "south",
+      "motion": "static",
+      "shape": {
+        "type": "box",
+        "half_extents": [
+          7.3,
+          0.5,
+          0.15
+        ]
+      },
+      "position": [
+        0,
+        0.5,
+        6.15
+      ]
+    },
+    {
+      "id": "gate_a",
+      "motion": "static",
+      "shape": {
+        "type": "box",
+        "half_extents": [
+          5,
+          0.65,
+          0.24
+        ]
+      },
+      "position": [
+        -2,
+        0.65,
+        1
+      ]
+    },
+    {
+      "id": "gate_b",
+      "motion": "static",
+      "shape": {
+        "type": "box",
+        "half_extents": [
+          5,
+          0.65,
+          0.24
+        ]
+      },
+      "position": [
+        2,
+        0.65,
+        -1.5
+      ]
+    },
+    {
+      "id": "goal",
+      "motion": "static",
+      "shape": {
+        "type": "box",
+        "half_extents": [
+          1.2,
+          0.035,
+          1.2
+        ]
+      },
+      "position": [
+        5,
+        0.035,
+        -4
+      ],
+      "is_sensor": true
+    },
+    {
+      "id": "player",
+      "motion": "dynamic",
+      "shape": {
+        "type": "box",
+        "half_extents": [
+          0.42,
+          0.42,
+          0.42
+        ]
+      },
+      "position": [
+        -5,
+        0.44,
+        4
+      ],
+      "friction": 0.25,
+      "allow_sleep": false
+    }
+  ]
+}

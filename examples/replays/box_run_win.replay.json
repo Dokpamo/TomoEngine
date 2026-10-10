@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "segments": [
+    {
+      "ticks": 138,
+      "input": {
+        "right": true
+      }
+    },
+    {
+      "ticks": 65,
+      "input": {
+        "up": true
+      }
+    },
+    {
+      "ticks": 123,
+      "input": {
+        "left": true
+      }
+    },
+    {
+      "ticks": 58,
+      "input": {
+        "up": true
+      }
+    },
+    {
+      "ticks": 145,
+      "input": {
+        "right": true
+      }
+    }
+  ],
+  "expect_win": true
+}

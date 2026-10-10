@@ -1,8 +1,12 @@
 # 실행 가능한 AI 조작 인터페이스
 
 이 명령은 `tools/tomo-cli`의 Rust binary `tomo`에 구현되어 있다. `render` feature로
-GPU 이미지 캡처를 추가할 수 있다. LLM, Tripo, 앱 패키징은 아직 구현하지 않았다. 외부 AI가 이 명령을 사용할 수 있다는 뜻이며
+GPU 이미지 캡처를 추가할 수 있다. LLM, Tripo는 아직 구현하지 않았다. 외부 AI가 이 명령을 사용할 수 있다는 뜻이며
 이 CLI가 혼자 자연어를 이해하고 게임을 만드는 자율 에이전트라는 뜻은 아니다.
+
+대화형 게임은 별도 `tomo-play` 바이너리다. `capabilities`의 `interactive_window: false`는
+`tomo` 자체의 기능이며 `companion_game`에 실행 명령을 제공한다. 게임 조작·입력 재현·
+macOS 로컬 앱 패키징은 [GAME.md](GAME.md)를 따른다.
 
 ## 빌드와 실행
 

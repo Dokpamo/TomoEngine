@@ -5,7 +5,7 @@ use serde::Serialize;
 use tomo_runtime::{BodyState, Snapshot};
 use tomo_scene::{Motion, Problem, Scene, ShapeSpec};
 
-use crate::{Camera, CaptureOptions, MAX_DIMENSION};
+use crate::{Camera, CaptureOptions, FrameStyle, MAX_DIMENSION};
 
 #[derive(Clone, Debug, Serialize)]
 pub struct ProjectedBody {
@@ -20,6 +20,7 @@ pub struct ProjectedBody {
 pub(crate) struct Geometry {
     pub triangles: Vec<u8>,
     pub lines: Vec<u8>,
+    pub overlay: Vec<u8>,
     pub bodies: Vec<ProjectedBody>,
 }
 
@@ -305,17 +306,31 @@ pub(crate) fn build(
     snapshot: &Snapshot,
     options: &CaptureOptions,
 ) -> Result<Geometry, Problem> {
+    build_styled(scene, snapshot, options, &FrameStyle::default())
+}
+
+pub(crate) fn build_styled(
+    scene: &Scene,
+    snapshot: &Snapshot,
+    options: &CaptureOptions,
+    style: &FrameStyle,
+) -> Result<Geometry, Problem> {
     let bodies = project_bodies(scene, snapshot, options)?;
+    style.validate(scene)?;
     let projection = Projection::new(options)?;
     let states: BTreeMap<_, _> = snapshot.bodies.iter().map(|s| (&s.id, s)).collect();
     let mut triangles = Vec::new();
     let mut lines = Vec::new();
     for spec in &scene.bodies {
-        let color = match spec.motion {
-            Motion::Static => [0.17, 0.23, 0.32],
-            Motion::Kinematic => [0.25, 0.5, 0.9],
-            Motion::Dynamic => [0.95, 0.38, 0.09],
-        };
+        let color = style
+            .body_colors
+            .get(&spec.id)
+            .copied()
+            .unwrap_or(match spec.motion {
+                Motion::Static => [0.17, 0.23, 0.32],
+                Motion::Kinematic => [0.25, 0.5, 0.9],
+                Motion::Dynamic => [0.95, 0.38, 0.09],
+            });
         let mut builder = MeshBuilder {
             projection: &projection,
             state: states[&spec.id],
@@ -332,6 +347,7 @@ pub(crate) fn build(
     Ok(Geometry {
         triangles,
         lines,
+        overlay: style.vertices(options),
         bodies,
     })
 }

@@ -52,6 +52,8 @@ jobs:
         run: cargo +${{ matrix.toolchain }} run -p tomo-physics --example stack --release --locked --offline
       - name: Actual JSON scene acceptance
         run: cargo +${{ matrix.toolchain }} run -q -p tomo-cli --locked --offline -- run examples/scenes/falling_box.scene.json --ticks 600
+      - name: Box Run fixed input acceptance
+        run: cargo +${{ matrix.toolchain }} run -q -p tomo-play --locked --offline -- --replay examples/replays/box_run_win.replay.json
 
   quality:
     timeout-minutes: 15
@@ -89,7 +91,7 @@ jobs:
         run: |
           rustup toolchain install 1.85.0 --profile minimal
           sudo apt-get update
-          sudo apt-get install -y mesa-vulkan-drivers
+          sudo apt-get install -y mesa-vulkan-drivers xvfb libxkbcommon-x11-0
       - name: Fetch reviewed locked dependencies
         run: cargo +1.85.0 fetch --locked
       - name: Actual Vulkan pixels and capture process
@@ -98,3 +100,9 @@ jobs:
         run: |
           cargo +1.85.0 test -p tomo-render --locked --offline --test capture -- --ignored
           cargo +1.85.0 test -p tomo-cli --features render --locked --offline --test cli -- --ignored
+          cargo +1.85.0 test -p tomo-play --locked --offline -- --ignored
+      - name: Actual desktop surface, movement and resize
+        env:
+          XDG_RUNTIME_DIR: /tmp
+          WINIT_UNIX_BACKEND: x11
+        run: xvfb-run -a cargo +1.85.0 run -p tomo-play --locked --offline -- --smoke-test

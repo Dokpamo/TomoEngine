@@ -86,3 +86,28 @@ fn reloading_is_an_explicit_new_world_not_a_physics_checkpoint() {
     assert_eq!(rebuilt.snapshot().unwrap().tick, 0);
     assert_eq!(rebuilt.snapshot().unwrap().bodies[0].position[1], 5.0);
 }
+
+#[test]
+fn interactive_stepping_preserves_tool_budget_and_validates_controls() {
+    let mut runtime = runtime();
+    let before = runtime.snapshot().unwrap();
+    for (id, velocity) in [
+        ("missing", [1.; 3]),
+        ("floor", [1.; 3]),
+        ("box", [f32::NAN; 3]),
+    ] {
+        assert!(runtime.set_body_velocity(id, velocity, [0.; 3]).is_err());
+        assert_eq!(runtime.snapshot().unwrap(), before);
+    }
+    runtime
+        .set_body_velocity("box", [1., 0., 0.], [0.; 3])
+        .unwrap();
+    assert!(runtime.step().unwrap().bodies[0].position[0] > 0.);
+    for _ in 0..tomo_runtime::MAX_TICKS {
+        runtime.step().unwrap();
+    }
+    let before = runtime.snapshot().unwrap();
+    assert_eq!(before.tick, tomo_runtime::MAX_TICKS + 1);
+    assert_eq!(runtime.run(1).unwrap_err().code, "LIMIT");
+    assert_eq!(runtime.snapshot().unwrap(), before);
+}

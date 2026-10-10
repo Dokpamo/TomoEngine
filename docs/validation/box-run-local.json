@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-10",
+  "os": "macOS 26.6.2",
+  "architecture": "aarch64",
+  "adapter": "Apple M4",
+  "backend": "Metal",
+  "rustc": "rustc 1.85.0 (4d91de4e4 2025-02-17)",
+  "stable_rustc": "rustc 1.96.0 (ac68faa20 2026-05-25)",
+  "checks": [
+    {
+      "command": "cargo fmt --all -- --check",
+      "exit_code": 0,
+      "passed_tests": 0
+    },
+    {
+      "command": "cargo test --workspace --locked --offline",
+      "exit_code": 0,
+      "passed_tests": 120
+    },
+    {
+      "command": "cargo test --workspace --all-features --locked --offline",
+      "exit_code": 0,
+      "passed_tests": 120
+    },
+    {
+      "command": "cargo test --workspace --release --locked --offline",
+      "exit_code": 0,
+      "passed_tests": 120
+    },
+    {
+      "command": "cargo test --workspace --release --all-features --locked --offline",
+      "exit_code": 0,
+      "passed_tests": 120
+    },
+    {
+      "command": "cargo clippy --workspace --all-targets --all-features --locked --offline -- -D warnings",
+      "exit_code": 0,
+      "passed_tests": 0
+    },
+    {
+      "command": "cargo doc --workspace --no-deps --all-features --locked --offline",
+      "exit_code": 0,
+      "passed_tests": 0
+    },
+    {
+      "command": "python3 scripts/check-policy.py",
+      "exit_code": 0,
+      "passed_tests": 0
+    },
+    {
+      "command": "python3 scripts/package-macos.py",
+      "exit_code": 0,
+      "passed_tests": 0
+    },
+    {
+      "command": "cargo +stable test --workspace --all-features --locked --offline",
+      "exit_code": 0,
+      "passed_tests": 120
+    },
+    {
+      "command": "cargo test --workspace --all-features --locked --offline -- --include-ignored",
+      "exit_code": 0,
+      "passed_tests": 125
+    }
+  ],
+  "manual_window_checks": [
+    "Arrow keys and WASD move the dynamic box",
+    "Navigate both gates and reach YOU WIN",
+    "Pause and resume with P",
+    "Restart with R and preserve session best",
+    "Toggle collider overlay with C",
+    "Zoom window and preserve correct aspect",
+    "Escape exits",
+    "Release app: pause, minimize, raise and restart"
+  ],
+  "limitations": [
+    "Windows DX12 hardware not tested locally",
+    "Linux Vulkan/Xvfb is checked separately in GitHub Actions",
+    "No mobile, gamepad, audio, permanent save or generic game SDK"
+  ]
+}

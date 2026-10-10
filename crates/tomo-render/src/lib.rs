@@ -4,12 +4,16 @@
 
 mod geometry;
 mod gpu;
+mod overlay;
+mod window;
 
 use serde::{Deserialize, Serialize};
 use tomo_runtime::Snapshot;
 use tomo_scene::{Problem, Scene};
 
 pub use geometry::{ProjectedBody, project_bodies};
+pub use overlay::{FrameStyle, OverlayRect, OverlayText};
+pub use window::WindowRenderer;
 
 pub const MAX_DIMENSION: u32 = 2048;
 
@@ -114,5 +118,16 @@ pub fn capture(
     options: &CaptureOptions,
 ) -> Result<Capture, Problem> {
     let geometry = geometry::build(scene, snapshot, options)?;
+    pollster::block_on(gpu::render(geometry, snapshot, options))
+}
+
+/// Capture the same game colors and HUD used by the window, without a window server.
+pub fn capture_styled(
+    scene: &Scene,
+    snapshot: &Snapshot,
+    options: &CaptureOptions,
+    style: &FrameStyle,
+) -> Result<Capture, Problem> {
+    let geometry = geometry::build_styled(scene, snapshot, options, style)?;
     pollster::block_on(gpu::render(geometry, snapshot, options))
 }

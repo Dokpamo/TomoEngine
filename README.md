@@ -4,8 +4,9 @@
 그 안의 Tomo Physics는 Jolt Physics를 C++ 바인딩 없이 Rust로 직접 이식하는
 독립 프로젝트로 유지합니다.
 
-> 현재 구현은 **초기 primitive 물리 런타임 + AI용 장면 도구 + GPU 이미지 캡처**입니다.
-> 대화형 게임 창, GLB/스키닝, Tripo 연동, 자율 AI 에이전트, 모바일/콘솔 게임 빌드는
+> 현재 구현은 **초기 primitive 물리 런타임 + AI용 장면 도구 + GPU 렌더러 + Box Run 게임**입니다.
+> 키보드로 상자를 목적지까지 옮기는 게임을 직접 실행할 수 있습니다.
+> GLB/스키닝, Tripo 연동, 자율 AI 에이전트, 모바일/콘솔 게임 빌드는
 > 아직 없습니다. Jolt 전체 기능·수치·성능 동등성도 아직 달성하지 않았습니다.
 
 ## 시작할 문서
@@ -14,6 +15,7 @@
 - [구조와 의존성·보안 경계](docs/ARCHITECTURE.md)
 - [단계별 완료 기준과 다음 작업](docs/ROADMAP.md)
 - [실제로 실행 가능한 CLI](docs/CLI.md)
+- [Box Run 실행·조작·입력 재현](docs/GAME.md)
 - [Primitive 렌더러와 캡처 검증](docs/RENDERING.md)
 - [별도 유지하는 Jolt 이식 현황](docs/PORTING.md)
 
@@ -27,7 +29,8 @@ crates/
   tomo-render/      snapshot → 구·상자, 카메라·깊이·조명·충돌체 표시·PNG
  tools/
   tomo-cli/        AI/사람이 호출하는 Rust tomo 명령
-schemas/           Scene/Patch/View v1 구조 명세
+  tomo-play/       창·키보드·목적지·재시작이 있는 Box Run 데모
+schemas/           Scene/Patch/View/Replay v1 구조 명세
 examples/          낙하 장면, 의도적 실패 장면, 수정 요청
 scripts/           의존성·계층 정책 검사
 ```
@@ -49,7 +52,24 @@ cargo run -q -p tomo-cli --locked --offline -- run examples/scenes/falling_box.s
 ```
 
 Rustup과 `rust-toolchain.toml`의 Rust 1.85.0이 필요합니다. 생성 서비스 API 키는 필요 없습니다.
-JSON 라이브러리의 최초 다운로드 이후 Cargo offline 실행이 가능합니다.
+잠긴 의존성의 최초 다운로드 이후 Cargo offline 실행이 가능합니다.
+
+## 게임 실행
+
+```sh
+cargo run -p tomo-play --release --locked --offline
+```
+
+**WASD / 방향키**로 주황색 상자를 초록색 목적지까지 이동하세요.
+**R** 재시작, **P** 일시정지, **C** 충돌체 표시, **Esc** 종료입니다.
+macOS 로컬 앱은 `python3 scripts/package-macos.py`로 `target/Box Run.app`에 생성할 수 있습니다.
+
+![Box Run: 직접 움직이는 첫 게임](docs/images/box-run.png)
+
+실제 macOS Metal 창에서 이동·도착·재시작을 확인했습니다. 자동 입력과 플랫폼별 검증 범위는
+[게임 문서](docs/GAME.md)에 있습니다. 한 스테이지 데모이며 범용 게임 SDK는 후속 작업입니다.
+
+## GPU 이미지 캡처
 
 GPU 캡처는 선택 기능입니다. 새 파일 경로로 저장합니다.
 
@@ -92,11 +112,12 @@ python3 scripts/check-policy.py
 완료 여부는 최신 커밋의 실제 [Actions](https://github.com/Dokpamo/TomoEngine/actions)
 결과를 확인해야 합니다. Headless CI가 성공해도 GPU 렌더링/모바일/콘솔 지원을 증명하지 않습니다.
 별도 `gpu-capture` job은 소프트웨어 Vulkan에서 실제 픽셀·깊이·이동·회전·PNG·CLI 검사를 실행합니다.
+같은 job에서 Xvfb 창의 실제 surface 출력·게임 이동·resize도 검사합니다.
 
 ## 라이선스
 
 MIT. Jolt 기준 `v5.6.0` / `e77f175595e64cb44218cc9d9d56fc365ad0e36a`.
 원저작권 고지는 LICENSE와 LICENSES/Jolt-MIT.txt, foundation 추적은 upstream/jolt.toml에 있습니다.
 공식 Jolt와 별개인 프로젝트입니다. Physics는 여전히 무바인딩·무FFI·외부 의존성 0이며,
-serde/serde_json은 상위 데이터/도구 계층, wgpu와 GPU/OS 연동은 렌더러 계층에서 사용합니다.
+serde/serde_json은 상위 데이터/도구 계층, wgpu는 렌더러, winit 창/입력은 게임 도구에서 사용합니다.
 의존성 선택과 검토 범위는 docs/RENDERING.md 및 scripts/reviewed-dependencies.json에 기록합니다.

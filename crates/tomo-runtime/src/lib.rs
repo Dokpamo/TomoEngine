@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-//! Fixed-tick, headless scene execution. No renderer or autonomous AI agent.
+//! Fixed-tick scene execution, with bounded tool runs and persistent game stepping.
 #![forbid(unsafe_code)]
 
 use serde::Serialize;
@@ -121,6 +121,66 @@ impl Runtime {
         &self.scene
     }
 
+    fn ensure_healthy(&self) -> Result<(), Problem> {
+        if self.failed {
+            Err(Problem::new(
+                "FAILED_WORLD",
+                "/",
+                "discard this runtime after numerical failure",
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Set checked world-space velocities by stable scene ID. Physics owns collision response.
+    /// This changes the running world, not the initial scene document.
+    pub fn set_body_velocity(
+        &mut self,
+        name: &str,
+        linear: [f32; 3],
+        angular: [f32; 3],
+    ) -> Result<(), Problem> {
+        self.ensure_healthy()?;
+        let path = format!("/bodies/{name}");
+        let id = self
+            .ids
+            .get(name)
+            .ok_or_else(|| Problem::new("REFERENCE", &path, "unknown body ID"))?;
+        self.world
+            .set_velocity(*id, vector(linear), vector(angular))
+            .map_err(|error| physics_error(&path, error))
+    }
+
+    fn advance_one(&mut self) -> Result<(), Problem> {
+        self.ensure_healthy()?;
+        let next = self
+            .tick
+            .checked_add(1)
+            .ok_or_else(|| Problem::new("LIMIT", "/ticks", "tick count overflow"))?;
+        if let Err(error) = self.world.update(self.scene.fixed_dt) {
+            self.failed = true;
+            return Err(Problem::new(
+                "SIMULATION",
+                format!("/ticks/{}", self.tick),
+                format!("{error:?}"),
+            ));
+        }
+        self.tick = next;
+        Ok(())
+    }
+
+    /// Advance one fixed tick for an interactive application. No CLI lifetime budget.
+    /// Callers must bound catch-up work per frame. Numerical failures remain fail-stop.
+    pub fn step(&mut self) -> Result<Snapshot, Problem> {
+        self.advance_one()?;
+        let result = self.snapshot();
+        if result.is_err() {
+            self.failed = true;
+        }
+        result
+    }
+
     pub fn snapshot(&self) -> Result<Snapshot, Problem> {
         if self.failed {
             return Err(Problem::new(
@@ -194,15 +254,7 @@ impl Runtime {
             ));
         }
         while self.tick < end {
-            if let Err(error) = self.world.update(self.scene.fixed_dt) {
-                self.failed = true;
-                return Err(Problem::new(
-                    "SIMULATION",
-                    format!("/ticks/{}", self.tick),
-                    format!("{error:?}"),
-                ));
-            }
-            self.tick += 1;
+            self.advance_one()?;
         }
         let snapshot = match self.snapshot() {
             Ok(snapshot) => snapshot,

@@ -1,0 +1,239 @@
+{
+  "adapter": "Apple M4",
+  "backend": "Metal",
+  "presented_frames": 120,
+  "schema_version": 1,
+  "seconds": 2.0000001043081284,
+  "snapshot": {
+    "bodies": [
+      {
+        "angular_velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "id": "east",
+        "linear_velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "position": [
+          7.150000095367432,
+          0.5,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "sleeping": false
+      },
+      {
+        "angular_velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "id": "floor",
+        "linear_velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "position": [
+          0.0,
+          -0.4000000059604645,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "sleeping": false
+      },
+      {
+        "angular_velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "id": "gate_a",
+        "linear_velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "position": [
+          -2.0,
+          0.6499999761581421,
+          1.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "sleeping": false
+      },
+      {
+        "angular_velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "id": "gate_b",
+        "linear_velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "position": [
+          2.0,
+          0.6499999761581421,
+          -1.5
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "sleeping": false
+      },
+      {
+        "angular_velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "id": "goal",
+        "linear_velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "position": [
+          5.0,
+          0.03500000014901161,
+          -4.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "sleeping": false
+      },
+      {
+        "angular_velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "id": "north",
+        "linear_velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "position": [
+          0.0,
+          0.5,
+          -6.150000095367432
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "sleeping": false
+      },
+      {
+        "angular_velocity": [
+          -2.76380296426737e-09,
+          5.292002391854567e-09,
+          -1.1563673352199544e-09
+        ],
+        "id": "player",
+        "linear_velocity": [
+          3.9388976097106934,
+          0.0,
+          1.9685742619346414e-11
+        ],
+        "position": [
+          2.908964157104492,
+          0.41999998688697815,
+          4.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "sleeping": false
+      },
+      {
+        "angular_velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "id": "south",
+        "linear_velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "position": [
+          0.0,
+          0.5,
+          6.150000095367432
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "sleeping": false
+      },
+      {
+        "angular_velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "id": "west",
+        "linear_velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "position": [
+          -7.150000095367432,
+          0.5,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "sleeping": false
+      }
+    ],
+    "simulation_time": 2.0000001043081284,
+    "tick": 120
+  },
+  "status": "playing"
+}
