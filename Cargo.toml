@@ -1,0 +1,12 @@
+[workspace]
+members = ["crates/tomo-physics"]
+resolver = "2"
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.85"
+license = "MIT"
+repository = "https://github.com/Dokpamo/TomoEngine"
+
+[profile.release]
+overflow-checks = true

@@ -1,0 +1,55 @@
+repository = "https://github.com/jrouwe/JoltPhysics"
+tag = "v5.6.0"
+commit = "e77f175595e64cb44218cc9d9d56fc365ad0e36a"
+license = "MIT"
+license_file = "LICENSES/Jolt-MIT.txt"
+
+# Git blob IDs of inspected reference files. This is a provenance manifest,
+# not an executable verification of the complete upstream repository.
+[[sources]]
+path = "Jolt/Math/Vec3.inl"
+blob = "62bd5426770af93c8639388193f384f6bf4b2198"
+target = "crates/tomo-physics/src/math.rs"
+scope = "subset: scalar arithmetic, reduction, cross, normalized-or"
+
+[[sources]]
+path = "Jolt/Math/Math.h"
+blob = "0ecacaed0ca014bfac6c42c3e1625bfa6b5406e4"
+target = "crates/tomo-physics/src/math.rs"
+scope = "DifferenceOfProducts and Sign convention"
+
+[[sources]]
+path = "Jolt/Math/FindRoot.h"
+blob = "34399262c591d0aaa9de0382d0151dc840059fbd"
+target = "crates/tomo-physics/src/math.rs"
+scope = "f32 specialization only"
+
+[[sources]]
+path = "Jolt/Geometry/AABox.h"
+blob = "bf730d24f6f5b68a46b35f75d7724942ebf95ba2"
+target = "crates/tomo-physics/src/aabb.rs"
+scope = "subset: scalar bounds operations; no transforms or supporting faces"
+
+[[sources]]
+path = "Jolt/Geometry/RayAABox.h"
+blob = "90a08f617109b436dbd6937c0a582048d020ac2e"
+target = "crates/tomo-physics/src/ray.rs"
+scope = "single-box scalar queries; no four-wide kernels"
+
+[[sources]]
+path = "Jolt/Geometry/RaySphere.h"
+blob = "93ad2682800b8ea9acf50d52c68d6c5ba0299386"
+target = "crates/tomo-physics/src/ray.rs"
+scope = "single closest fraction overload"
+
+[[sources]]
+path = "Jolt/Geometry/RayTriangle.h"
+blob = "a081cf187bd8782d204fa0ede39cced1bd4a0dd9"
+target = "crates/tomo-physics/src/ray.rs"
+scope = "single-triangle scalar kernel; no four-wide kernel"
+
+[[sources]]
+path = "Jolt/Physics/Body/BodyID.h"
+blob = "8f9ca3a5619d44e86a4669de77fb8178d4a9838d"
+target = "crates/tomo-physics/src/body_id.rs"
+scope = "packed representation and comparisons; checked Rust constructors"

@@ -1,0 +1,80 @@
+name: Rust physics
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            toolchain: '1.85.0'
+          - os: windows-latest
+            toolchain: '1.85.0'
+          - os: macos-latest
+            toolchain: '1.85.0'
+          - os: ubuntu-latest
+            toolchain: stable
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Install Rust
+        run: rustup toolchain install ${{ matrix.toolchain }} --profile minimal
+      - name: Default tests
+        run: cargo +${{ matrix.toolchain }} test --workspace --locked --offline
+      - name: FMA tests
+        run: cargo +${{ matrix.toolchain }} test --workspace --all-features --locked --offline
+      - name: Release default tests
+        run: cargo +${{ matrix.toolchain }} test --workspace --release --locked --offline
+      - name: Release FMA tests
+        run: cargo +${{ matrix.toolchain }} test --workspace --release --all-features --locked --offline
+      - name: Query example
+        run: cargo +${{ matrix.toolchain }} run -p tomo-physics --example raycast --locked --offline
+      - name: Falling box
+        run: cargo +${{ matrix.toolchain }} run -p tomo-physics --example falling_box --release --locked --offline
+      - name: Stack
+        run: cargo +${{ matrix.toolchain }} run -p tomo-physics --example stack --release --locked --offline
+
+  quality:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Install pinned quality tools
+        run: rustup toolchain install 1.85.0 --profile minimal --component rustfmt --component clippy
+      - name: Format
+        run: cargo +1.85.0 fmt --all -- --check
+      - name: Clippy
+        if: always()
+        run: cargo +1.85.0 clippy --workspace --all-targets --all-features --locked --offline -- -D warnings
+      - name: Documentation
+        if: always()
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo +1.85.0 doc --workspace --no-deps --all-features --locked --offline
+      - name: Pure Rust and zero dependency policy
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(grep -c '^\[\[package\]\]' Cargo.lock)" -eq 1
+          ! grep -q '^source = ' Cargo.lock
+          test -z "$(find crates -type f \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.h' -o -name '*.hpp' -o -name '*.a' -o -name '*.lib' -o -name '*.so' -o -name '*.dll' -o -name '*.dylib' -o -name 'build.rs' \) -print)"
+          grep -Fx '#![forbid(unsafe_code)]' crates/tomo-physics/src/lib.rs
+          cargo +1.85.0 tree --workspace --locked --offline --edges normal,build,dev
