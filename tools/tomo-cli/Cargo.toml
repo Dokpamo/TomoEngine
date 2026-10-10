@@ -17,6 +17,7 @@ fma = ["tomo-runtime/fma"]
 render = ["dep:tomo-render"]
 
 [dependencies]
+tomo-project = { path = "../../crates/tomo-project" }
 tomo-scene = { path = "../../crates/tomo-scene" }
 tomo-runtime = { path = "../../crates/tomo-runtime" }
 tomo-render = { path = "../../crates/tomo-render", optional = true }

@@ -7,7 +7,12 @@ license.workspace = true
 repository.workspace = true
 publish = false
 
+[features]
+default = []
+editor = ["dep:egui"]
+
 [dependencies]
+egui = { version = "=0.32.3", optional = true }
 tomo-scene = { path = "../tomo-scene" }
 tomo-runtime = { path = "../tomo-runtime" }
 serde.workspace = true

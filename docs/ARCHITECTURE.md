@@ -3,15 +3,16 @@
 ## 현재 만드는 경계
 
 ```text
-외부 AI 에이전트 / 사람
-          |
- tools/tomo-cli               JSON 입력·출력, 명령/오류/종료 코드
-          |
- crates/tomo-runtime          장면 검증·구축, 고정 tick, 상태·검사 보고
-       /            \
- crates/tomo-scene   crates/tomo-physics
- 버전 있는 데이터   기존 독립 순수 Rust Jolt 이식
+외부 AI / 사람 → tomo-cli (JSON), tomo-editor (GUI), tomo-play (게임 창)
+                      ↓               ↓                 ↓
+                  tomo-project → tomo-game → tomo-runtime
+                     ↓                         ↓      ↓
+                  tomo-scene ←─────────────────┘  tomo-physics
+
+renderer: scene + runtime snapshot → tomo-render (GPU)
+editor: renderer의 editor feature + egui-winit (UI/OS)
 ```
+
 
 `tomo-scene`에는 serde 자료형과 장면 규칙만 둔다. 물리 API나 GPU 객체를 노출하지 않는다.
 `tomo-runtime`이 안정적인 장면 문자열 ID를 하나의 world의 BodyId로 매핑한다. BodyId를
@@ -25,8 +26,10 @@ runtime/scene/physics에서 renderer로 향하는 의존성은 없다.
 ## 렌더러와 후속 구조
 
 `tomo-render`는 primitive 캡처와 지속적인 GPU surface/장치/파이프라인/정점 버퍼 재사용을 제공한다.
-`tools/tomo-play`는 runtime/scene/render를 사용해 Box Run 게임, winit 창과 입력, JSON 입력 재현을
-연결한다. 물리 없는 색/HUD는 `FrameStyle`로 분리했으며 일반 visual entity/ECS는 후속이다.
+`tomo-game`은 창 없는 규칙·컨트롤러·replay를, `tomo-project`는 프로젝트 문서·검증·저장·Undo를
+담당한다. 두 crate의 전이 의존성은 CPU 코어/serialization으로 제한한다. `tools/tomo-play`와
+`tools/tomo-editor`가 이들을 renderer/OS 입력과 연결한다. 에디터의 Play world는 문서와 별도다.
+프로젝트 저장의 revision·파일 충돌·복구 범위는 EDITOR.md를 따른다. 물리 없는 색/HUD는 `FrameStyle`로 분리했으며 일반 visual entity/ECS는 후속이다.
 `tomo-assets`: GLB·텍스처 가져오기/검증·버전 있는 변환 캐시.
 애니메이션·캐릭터는 책임이 확인될 때 별도 crate로 추출한다. 처음부터 빈 crate를 만들지 않는다.
 플랫폼 어댑터는 창·입력·오디오·저장·수명주기·패키징을 담당한다. 콘솔 코드는 SDK 허가와
@@ -76,9 +79,10 @@ physics crate로 전파되지 않는다. Cargo.lock은 Cargo의 실제 해석 �
 
 셰이더·그래픽 드라이버·운영체제까지 Rust로 재작성한다는 목표가 아니다.
 렌더러에만 wgpu 26.0.1의 Metal/Vulkan/DX12 GPU·OS 연동과 WGSL 셰이더를 허용한다.
-창·입력용 winit 0.30.13은 `tools/tomo-play`에만 둔다.
+창·입력용 winit 0.30.13은 `tools/tomo-play`와 `tools/tomo-editor`에만 둔다.
+egui 0.32.3은 선택적 renderer editor feature와 에디터에, egui-winit은 에디터에만 둔다.
 직접 의존성 목적, 전이 의존성 및 native 경계 검토는 RENDERING.md에 기록한다.
-physics/scene/runtime의 전이 그래프에는 GPU/native 의존성이 들어갈 수 없으며 CI가 이를 검사한다.
+physics/scene/runtime/game/project의 전이 그래프에는 GPU/native 의존성이 들어갈 수 없으며 CI가 이를 검사한다.
 
 ## 에셋·AI 서비스 경계
 

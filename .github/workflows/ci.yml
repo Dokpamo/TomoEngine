@@ -52,6 +52,11 @@ jobs:
         run: cargo +${{ matrix.toolchain }} run -p tomo-physics --example stack --release --locked --offline
       - name: Actual JSON scene acceptance
         run: cargo +${{ matrix.toolchain }} run -q -p tomo-cli --locked --offline -- run examples/scenes/falling_box.scene.json --ticks 600
+      - name: Project creation and standalone game acceptance
+        run: |
+          cargo +${{ matrix.toolchain }} run -q -p tomo-cli --locked --offline -- project new target/ci-game --name "CI Game"
+          cargo +${{ matrix.toolchain }} run -q -p tomo-cli --locked --offline -- project validate target/ci-game
+          cargo +${{ matrix.toolchain }} run -q -p tomo-play --locked --offline -- --project target/ci-game --replay examples/replays/box_run_win.replay.json
       - name: Box Run fixed input acceptance
         run: cargo +${{ matrix.toolchain }} run -q -p tomo-play --locked --offline -- --replay examples/replays/box_run_win.replay.json
 
@@ -106,3 +111,9 @@ jobs:
           XDG_RUNTIME_DIR: /tmp
           WINIT_UNIX_BACKEND: x11
         run: xvfb-run -a cargo +1.85.0 run -p tomo-play --locked --offline -- --smoke-test
+
+      - name: Actual editor panels, viewport, play isolation and resize
+        env:
+          XDG_RUNTIME_DIR: /tmp
+          WINIT_UNIX_BACKEND: x11
+        run: xvfb-run -a cargo +1.85.0 run -p tomo-editor --locked --offline -- --smoke-test

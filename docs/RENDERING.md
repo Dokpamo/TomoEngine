@@ -39,7 +39,7 @@ wgpu 30.0.1은 Rust 1.87 이상을 요구하므로 이번 고정 toolchain과 �
 - pollster 0.4.0: CLI에서 adapter/device/error-scope future를 기다리는 작은 executor.
 - png 0.17.16: 외부 명령 없이 RGBA8 PNG를 인코딩하고 테스트에서 디코딩.
 - serde: 기존 versioned view/metadata 형식. 별도의 벡터 수학/unsafe byte-cast 의존성은 추가하지 않았다.
-- winit 0.30.13 (MSRV 1.70, Apache-2.0): `tomo-play` 전용 창/키보드/수명주기.
+- winit 0.30.13 (MSRV 1.70, Apache-2.0): `tomo-play`/`tomo-editor`의 창/키보드/수명주기.
   default feature를 끄고 rwh_06/x11/wayland/wayland-dlopen만 사용한다.
   근거: https://docs.rs/crate/winit/0.30.13 및 배포 Cargo.toml. client decoration/font 라이브러리는
   활성화하지 않는다. HUD는 프로젝트의 작은 ASCII bitmap alphabet으로 그리며 추가 폰트가 없다.
@@ -47,7 +47,7 @@ wgpu 30.0.1은 Rust 1.87 이상을 요구하므로 이번 고정 toolchain과 �
 Metal/Objective-C, Vulkan loader 및 Windows API 연동은 wgpu의 외부 계층에만 존재한다.
 프로젝트가 작성한 Rust에는 forbid(unsafe_code)를 유지하고 physics에는 외부 dependency를 추가하지 않았다.
 wgpu 및 전이 의존성 내부의 unsafe/FFI/build script를 없다고 주장하지 않는다.
-`scripts/reviewed-dependencies.json`은 Cargo가 실제 해석한 244개 외부 패키지의 버전/source/license/
+`scripts/reviewed-dependencies.json`은 Cargo가 실제 해석한 282개 외부 패키지의 버전/source/license/
 links/build-script 유무를 기록한다. 라이선스 선언은 MIT/Apache/기타 permissive 계열이며,
 이를 전체 공급망 코드 감사 완료로 해석하지 않는다. 전체 metadata의 wasm_bindgen links는
 target별 그래프에 포함된 선언이며 native 캡처 backend로 WebGPU를 활성화한 것은 아니다.
@@ -57,7 +57,7 @@ target별 Android JNI/NDK·Windows·Redox·Wasm 경계를 검토했다. objc-sys
 windowing build script는 외부 OS 계층에만 허용한다. native-free로 표시하지 않는다.
 여러 라이선스 선택지가 있는 패키지는 MIT/Apache 등 permissive 선택지가 있는지 확인했다.
 이는 버전·선언·계층 검토이며 전이 코드 전체 보안 감사나 모바일 실행 검증이 아니다.
-정책 검사는 manifest와 실제 graph를 비교하며 physics/scene/runtime의 transitive graph에
+정책 검사는 manifest와 실제 graph를 비교하며 physics/scene/runtime/game/project의 transitive graph에
 렌더러·GPU·native 의존성이 유입되는 것을 별도로 차단한다.
 
 ## 검증과 남은 범위
@@ -84,3 +84,31 @@ GLB/PBR/스키닝/게임 SDK는 아직 검증·구현하지 않았다.
 Box Run은 움직임/목적지/재시작/입력 재현과 실시간 수명/CLI 예산 분리를 구현했다.
 일반 장면 객체와 물리 body의 분리, 에셋 렌더링은 후속이다.
 Jolt 원본 inventory와 differential test는 계속 독립 목표로 남는다.
+
+## Editor backend 의존성 결정
+
+Rust 1.85.0을 유지하는 **egui / egui-winit 0.32.3**을 고정했다. egui는 widgets/텍스트 편집과
+CPU tessellation, egui-winit은 창 입력·IME·텍스트 clipboard 연결을 담당한다. 배포 manifest의
+MSRV 1.85와 MIT OR Apache-2.0을 확인했다. 근거: https://docs.rs/crate/egui/0.32.3 및
+https://docs.rs/crate/egui-winit/0.32.3 . egui-winit default features는 끄고 clipboard/x11/wayland만 켰다.
+브라우저 링크 실행, accesskit, 별도 egui-wgpu/eframe backend는 활성화하지 않는다.
+
+`crates/tomo-render/src/gui.rs`의 선택적 painter는 기존 wgpu 26 장치에 atlas·mesh·scissor를
+올리고, 같은 surface의 3D viewport 뒤에 패널을 합성한다. project Rust는 unsafe 없이
+정점 바이트를 작성한다. egui managed texture/mesh용이며 외부 paint callback은 거부한다.
+GUI atlas 최대 4096²/64개, 한 프레임 최대 2,000,000 정점이며, 폰트 갱신은 surface 재시도에도
+보존한다. shader는 egui의 gamma RGBA를 sRGB surface용 linear RGB로 변환한다.
+
+추가 38개 전이 패키지를 버전·source·license·links/build-script·도달 계층 기준으로 검토했다.
+ab_glyph/ttf-parser 및 epaint 기본 폰트는 텍스트 표시용이다. 폰트의 OFL-1.1,
+Ubuntu-font-1.0, Hack/emoji 고지문을 LICENSES/editor-fonts에 보존하고 로컬 .app에도 복사한다.
+arboard/clipboard-win/Objective-C AppKit·CoreGraphics·IOSurface/dispatch2와
+smithay-clipboard/Wayland/calloop는 외부 OS clipboard 계층이다. arboard의 image-data feature가
+image/png 0.18/tiff/zune/fax/weezl/moxcms/pxfm 전이 코드를 포함하지만, 에디터의 자산 importer가
+구현됐다는 뜻은 아니다. 이들의 라이선스는 MIT/Apache/BSL/Zlib/BSD 등 permissive 선택지를
+확인했다. objc2와 smithay-client-toolkit의 외부 build script를 허용하고 core 유입은 금지한다.
+기존 lockfile 버전은 유지했고 정책 allowlist는 282개 외부 패키지를 정확히 비교한다.
+이는 선언·버전·계층 검토이며 전이 코드 전체 보안 감사나 unsafe-free 보장이 아니다.
+
+에디터의 실제 창·atlas·resize 검사는 `cargo run -p tomo-editor --locked --offline -- --smoke-test`다.
+자동 GUI/문서 테스트와 수동 조작 범위는 EDITOR.md를 따른다.

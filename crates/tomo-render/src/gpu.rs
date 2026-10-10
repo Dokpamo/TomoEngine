@@ -189,6 +189,16 @@ impl Gpu {
         view: &wgpu::TextureView,
         depth: &wgpu::TextureView,
     ) -> wgpu::CommandEncoder {
+        self.encode_viewport(geometry, view, depth, None)
+    }
+
+    pub fn encode_viewport(
+        &mut self,
+        geometry: &Geometry,
+        view: &wgpu::TextureView,
+        depth: &wgpu::TextureView,
+        viewport: Option<[u32; 4]>,
+    ) -> wgpu::CommandEncoder {
         for (vertices, bytes) in
             self.vertices
                 .iter_mut()
@@ -228,6 +238,10 @@ impl Gpu {
                 }),
                 ..Default::default()
             });
+            if let Some([x, y, w, h]) = viewport {
+                pass.set_viewport(x as f32, y as f32, w as f32, h as f32, 0., 1.);
+                pass.set_scissor_rect(x, y, w, h);
+            }
             for (pipeline, vertices) in self.pipelines.iter().zip(&self.vertices) {
                 if vertices.count > 0 {
                     pass.set_pipeline(pipeline);

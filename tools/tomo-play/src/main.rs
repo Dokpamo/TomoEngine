@@ -50,21 +50,34 @@ fn capture(game: &Game, path: &str) -> Result<serde_json::Value, Problem> {
 }
 
 fn execute(args: &[String]) -> Result<u8, Problem> {
+    let (game, args) = if let [flag, directory, tail @ ..] = args {
+        if flag == "--project" {
+            (
+                tomo_project::ProjectFile::open(directory)?
+                    .project()
+                    .game()?,
+                tail,
+            )
+        } else {
+            (Game::new()?, args)
+        }
+    } else {
+        (Game::new()?, args)
+    };
     match args {
-        [] => desktop::run(None),
+        [] => desktop::run(game, None),
         [flag] if flag == "--help" => {
             println!(
                 "{}",
                 json!({"schema_version":1,"game":"Box Run","commands":[
-                "tomo-play", "tomo-play --replay REPLAY.json [--capture NEW.png]",
+                "tomo-play [--project DIRECTORY]", "tomo-play [--project DIRECTORY] --replay REPLAY.json [--capture NEW.png]",
                 "tomo-play --capture NEW.png", "tomo-play --smoke-test"],
                 "controls":{"move":"WASD / arrows","restart":"R","pause":"P","colliders":"C","quit":"Escape"}})
             );
             Ok(0)
         }
-        [flag] if flag == "--smoke-test" => desktop::run(Some(120)),
+        [flag] if flag == "--smoke-test" => desktop::run(game, Some(120)),
         [flag, path] if flag == "--capture" => {
-            let game = Game::new()?;
             println!(
                 "{}",
                 json!({"schema_version":1,"status":game.status(),"capture":capture(&game,path)?})
@@ -84,7 +97,7 @@ fn execute(args: &[String]) -> Result<u8, Problem> {
                 }
             };
             let replay = read_replay(path)?;
-            let mut game = Game::new()?;
+            let mut game = game;
             let passed = replay.run(&mut game)?;
             let capture = output.map(|path| capture(&game, path)).transpose()?;
             println!(

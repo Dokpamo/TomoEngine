@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:tomo:project:1",
+  "title": "Tomo game project v1",
+  "$comment": "Load the scene schema under urn:tomo:scene:1. Structural schema only: project validate also checks the 1 MiB UTF-8 budget, byte lengths, finite numbers, role references, dynamic solid player, static unrotated sensor-box goal, goal/player sizes, and physics construction.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "revision", "name", "scene", "game"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "revision": {"type": "integer", "minimum": 0, "maximum": 18446744073709551615},
+    "name": {"type": "string", "minLength": 1, "maxLength": 128},
+    "scene": {"$ref": "urn:tomo:scene:1"},
+    "game": {
+      "type": "object", "additionalProperties": false,
+      "required": ["player", "goal", "speed"],
+      "properties": {
+        "player": {"$ref": "urn:tomo:scene:1#/$defs/id"},
+        "goal": {"$ref": "urn:tomo:scene:1#/$defs/id"},
+        "speed": {"type": "number", "minimum": 0.1, "maximum": 30}
+      }
+    }
+  }
+}

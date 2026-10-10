@@ -45,7 +45,7 @@ xkbcommon 런타임, Vulkan 드라이버가 필요하다. macOS는 Metal, Window
 ## 실행 구조
 
 - `examples/scenes/box_run.scene.json`: 바이너리에 포함되는 Scene v1. 바닥, 벽, 목적지 sensor, player.
-- `tools/tomo-play/src/lib.rs`: 창 없이도 동작하는 게임 상태·속도 입력·목적지 판정·재시작.
+- `crates/tomo-game/src/lib.rs`: 창 없이도 동작하는 게임 상태·속도 입력·목적지 판정·재시작.
 - `tools/tomo-play/src/desktop.rs`: winit 창, 키보드, 포커스, bounded accumulator, resize, 종료.
 - `tools/tomo-play/src/view.rs`: 카메라, body별 색, 타이머·조작 안내·완료 HUD.
 - `tomo-render::WindowRenderer`: 지속 GPU 장치/파이프라인/정점 버퍼, surface와 깊이 버퍼.
@@ -73,7 +73,7 @@ cargo run -q -p tomo-play --locked --offline -- --smoke-test
 
 replay는 창 없이 동일한 Game/controller/physics로 새 게임을 실행한다. GPU는 `--capture`가
 있을 때만 초기화한다. Scene과 달리 입력 JSON은 `schemas/replay-v1.schema.json`을 따르며,
-1 MiB / 1024 segment / 전체 36000 tick 제한을 먼저 검증한다. unknown 필드·버전·0 tick은 오류다.
+1 MiB / 1024 segment / 전체 36000 tick / body 수 제곱 × tick <= 5,000,000 제한을 먼저 검증한다. unknown 필드·버전·0 tick은 오류다.
 한 segment는 up/down/left/right 상태를 N tick 유지한다. 예제는 514 tick(약 8.57초)에 도착한다.
 성공한 world는 더 진행하지 않으므로 남은 입력 segment가 있어도 최종 tick은 도착 tick이다.
 동일 빌드에서 동일 입력을 비교하며, 모든 플랫폼의 bit 단위 동일성을 보장하지 않는다.
@@ -87,7 +87,7 @@ stdout은 JSON이다. 종료 코드 0은 정상 종료 또는 기대와 같은 r
 검사하는 테스트는 아니며, Linux CI에서는 Xvfb/Vulkan으로 실행한다.
 
 ```sh
-cargo test -p tomo-play --locked --offline
+cargo test -p tomo-game -p tomo-play --locked --offline
 cargo test -p tomo-play --locked --offline -- --include-ignored
 ```
 
@@ -100,3 +100,10 @@ P 일시정지, R 재시작 및 최고 기록 유지, C 충돌체, 창 확대, E
 PNG/JSON 증거는 `images/box-run*.png`, `validation/box-run*.json`이다.
 Linux 창은 최신 CI의 `gpu-capture` 결과로 확인한다. Windows DX12 실기기 창과
 모바일·게임패드·오디오·영구 저장은 이번 검증 범위에 포함하지 않는다.
+
+## 만든 프로젝트 실행
+
+에디터/CLI가 저장한 프로젝트는 `tomo-play --project DIRECTORY`로 실행한다.
+`--replay`나 `--capture`보다 앞에 `--project DIRECTORY`를 지정한다. Scene과 game의
+player/goal/speed 설정을 사용하고 R은 같은 프로젝트의 초기 장면으로 재시작한다.
+폴더·문서 구조와 현재 템플릿 제약은 [EDITOR.md](EDITOR.md)를 따른다.

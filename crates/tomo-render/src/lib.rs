@@ -3,6 +3,10 @@
 #![forbid(unsafe_code)]
 
 mod geometry;
+#[cfg(feature = "editor")]
+mod gui;
+#[cfg(feature = "editor")]
+pub use gui::EditorFrame;
 mod gpu;
 mod overlay;
 mod window;
@@ -11,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use tomo_runtime::Snapshot;
 use tomo_scene::{Problem, Scene};
 
-pub use geometry::{ProjectedBody, project_bodies};
+pub use geometry::{ProjectedBody, pick_body, plane_position, project_bodies};
 pub use overlay::{FrameStyle, OverlayRect, OverlayText};
 pub use window::WindowRenderer;
 

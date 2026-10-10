@@ -27,9 +27,9 @@ pub fn style(game: &Game, view: &CaptureOptions, paused: bool) -> FrameStyle {
     let mut style = FrameStyle::default();
     for body in &game.scene().bodies {
         let color = match body.id.as_str() {
+            id if id == game.rules().player => [1.0, 0.38, 0.07],
+            id if id == game.rules().goal => [0.08, 0.95, 0.55],
             "floor" => [0.105, 0.16, 0.22],
-            "player" => [1.0, 0.38, 0.07],
-            "goal" => [0.08, 0.95, 0.55],
             "gate_a" | "gate_b" => [0.34, 0.46, 0.57],
             _ => [0.19, 0.29, 0.38],
         };
@@ -60,7 +60,21 @@ pub fn style(game: &Game, view: &CaptureOptions, paused: bool) -> FrameStyle {
             color,
         })
     };
-    text(51., 27., 4., "BOX RUN".into(), white);
+    let title: String = game
+        .scene()
+        .name
+        .to_ascii_uppercase()
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || " .:/-+".contains(c) {
+                c
+            } else {
+                ' '
+            }
+        })
+        .take(18)
+        .collect();
+    text(51., 27., 4., title, white);
     text(51., 67., 1.5, "TOMO ENGINE / 01".into(), muted);
     text(w - 330., 28., 1.7, "TIME".into(), muted);
     text(

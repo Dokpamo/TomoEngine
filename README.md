@@ -4,8 +4,8 @@
 그 안의 Tomo Physics는 Jolt Physics를 C++ 바인딩 없이 Rust로 직접 이식하는
 독립 프로젝트로 유지합니다.
 
-> 현재 구현은 **초기 primitive 물리 런타임 + AI용 장면 도구 + GPU 렌더러 + Box Run 게임**입니다.
-> 키보드로 상자를 목적지까지 옮기는 게임을 직접 실행할 수 있습니다.
+> 현재 구현은 **초기 primitive 물리 런타임 + AI용 장면 도구 + GPU 렌더러 + 프로젝트 에디터 + Box Run 게임**입니다.
+> 에디터에서 장면을 만들고 저장한 뒤, 같은 프로젝트를 게임 창에서 실행할 수 있습니다.
 > GLB/스키닝, Tripo 연동, 자율 AI 에이전트, 모바일/콘솔 게임 빌드는
 > 아직 없습니다. Jolt 전체 기능·수치·성능 동등성도 아직 달성하지 않았습니다.
 
@@ -15,6 +15,7 @@
 - [구조와 의존성·보안 경계](docs/ARCHITECTURE.md)
 - [단계별 완료 기준과 다음 작업](docs/ROADMAP.md)
 - [실제로 실행 가능한 CLI](docs/CLI.md)
+- [에디터와 게임 프로젝트 제작](docs/EDITOR.md)
 - [Box Run 실행·조작·입력 재현](docs/GAME.md)
 - [Primitive 렌더러와 캡처 검증](docs/RENDERING.md)
 - [별도 유지하는 Jolt 이식 현황](docs/PORTING.md)
@@ -26,11 +27,14 @@ crates/
   tomo-physics/     기존 독립 물리 코어: 외부 Cargo 의존성 0
   tomo-scene/       버전 있는 JSON 장면·검증·문서 patch
   tomo-runtime/     장면 → physics, 고정 tick, 상태·검사 보고
+  tomo-game/        창 없는 플레이 규칙·컨트롤러·입력 재현
+  tomo-project/     프로젝트 v1·검증·저장·문서 이력
   tomo-render/      snapshot → 구·상자, 카메라·깊이·조명·충돌체 표시·PNG
- tools/
+tools/
   tomo-cli/        AI/사람이 호출하는 Rust tomo 명령
-  tomo-play/       창·키보드·목적지·재시작이 있는 Box Run 데모
-schemas/           Scene/Patch/View/Replay v1 구조 명세
+  tomo-play/       프로젝트 / 내장 Box Run을 실행하는 게임 창
+  tomo-editor/     오브젝트 편집·프로젝트 저장·Play/Stop
+schemas/           Project/Scene/Patch/View/Replay v1 구조 명세
 examples/          낙하 장면, 의도적 실패 장면, 수정 요청
 scripts/           의존성·계층 정책 검사
 ```
@@ -53,6 +57,18 @@ cargo run -q -p tomo-cli --locked --offline -- run examples/scenes/falling_box.s
 
 Rustup과 `rust-toolchain.toml`의 Rust 1.85.0이 필요합니다. 생성 서비스 API 키는 필요 없습니다.
 잠긴 의존성의 최초 다운로드 이후 Cargo offline 실행이 가능합니다.
+
+## 에디터에서 게임 만들기
+
+```sh
+cargo run -p tomo-editor --release --locked --offline
+```
+
+**+ Box / + Sphere**로 물체를 추가하고, 화면에서 끌어 배치하거나 오른쪽 속성을 수정합니다.
+**Play**로 직접 조작하고 **Stop**으로 편집 상태에 돌아옵니다. **Save**에서 새 프로젝트
+폴더를 만들면, `tomo-play --project 폴더경로`로 같은 장면을 독립 실행할 수 있습니다.
+macOS 앱은 `python3 scripts/package-macos.py --editor`로 `target/Tomo Editor.app`에 생성합니다.
+첫 버전은 목적지 도착 게임 템플릿이며, 자세한 계약과 조작은 [에디터 문서](docs/EDITOR.md)에 있습니다.
 
 ## 게임 실행
 

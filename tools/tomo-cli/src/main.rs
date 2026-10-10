@@ -49,7 +49,9 @@ fn dispatch(args: &[String]) -> Result<(Value, u8), Problem> {
                 "rendering": cfg!(feature = "render"),
                 "rendering_requires_adapter": true,
                 "interactive_window": false,
-                "companion_game": "cargo run -p tomo-play --locked --offline",
+                "companion_game": "cargo run -p tomo-play --locked --offline -- [--project DIRECTORY]",
+                "companion_editor": "cargo run -p tomo-editor --locked --offline -- [--project DIRECTORY]",
+                "project_commands": ["project new", "project validate"],
                 "autonomous_agent": false,
                 "tripo": false,
                 "jolt_complete": false,
@@ -67,11 +69,27 @@ fn dispatch(args: &[String]) -> Result<(Value, u8), Problem> {
                 "usage": ["tomo capabilities", "tomo scene validate SCENE.json",
                     "tomo scene patch SCENE.json PATCH.json", "tomo inspect SCENE.json",
                     "tomo run SCENE.json --ticks N",
+                    "tomo project new NEW_DIRECTORY --name NAME", "tomo project validate DIRECTORY",
                     "tomo capture SCENE.json --ticks N --output NEW.png [--view VIEW.json] [--colliders] (requires render feature)"],
                 "exit_codes": {"0": "success", "1": "check_failed", "2": "input_error", "3": "runtime_or_output_error"}
             }),
             0,
         )),
+        ["project", "new", directory, "--name", name] => {
+            let project = tomo_project::Project::template(name)?;
+            let file = tomo_project::ProjectFile::create(directory, &project)?;
+            Ok((
+                json!({"schema_version":1,"ok":true,"path":file.path(),"project":file.project()}),
+                0,
+            ))
+        }
+        ["project", "validate", path] => {
+            let file = tomo_project::ProjectFile::open(path)?;
+            Ok((
+                json!({"schema_version":1,"ok":true,"project":file.project()}),
+                0,
+            ))
+        }
         ["scene", "validate", path] => {
             let runtime = Runtime::from_scene(load_scene(path)?)?;
             Ok((

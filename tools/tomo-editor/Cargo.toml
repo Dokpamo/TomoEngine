@@ -1,0 +1,22 @@
+[package]
+name = "tomo-editor"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[features]
+default = []
+fma = ["tomo-project/fma"]
+
+[dependencies]
+tomo-scene = { path = "../../crates/tomo-scene" }
+tomo-game = { path = "../../crates/tomo-game" }
+tomo-project = { path = "../../crates/tomo-project" }
+tomo-render = { path = "../../crates/tomo-render", features = ["editor"] }
+serde_json.workspace = true
+egui = "=0.32.3"
+egui-winit = { version = "=0.32.3", default-features = false, features = ["clipboard", "x11", "wayland"] }
+winit = { version = "=0.30.13", default-features = false, features = ["rwh_06", "x11", "wayland", "wayland-dlopen"] }

@@ -13,6 +13,8 @@ pub struct WindowRenderer {
     config: wgpu::SurfaceConfiguration,
     depth: wgpu::TextureView,
     minimized: bool,
+    #[cfg(feature = "editor")]
+    gui: Option<crate::gui::GuiPainter>,
     pub adapter_name: String,
     pub backend: String,
 }
@@ -66,6 +68,8 @@ impl WindowRenderer {
             config,
             depth,
             minimized: width == 0 || height == 0,
+            #[cfg(feature = "editor")]
+            gui: None,
             adapter_name: info.name,
             backend: format!("{:?}", info.backend),
         })
@@ -110,6 +114,68 @@ impl WindowRenderer {
         let encoder = self.gpu.encode(&geometry, &view, &self.depth);
         self.gpu.queue.submit([encoder.finish()]);
         frame.present();
+        self.gpu
+            .device
+            .poll(wgpu::PollType::Poll)
+            .map_err(gpu::error)?;
+        self.gpu.check()?;
+        Ok(true)
+    }
+}
+
+#[cfg(feature = "editor")]
+impl WindowRenderer {
+    /// Paint a scene viewport and egui panels on one surface, sharing its device and lifecycle.
+    pub fn present_editor(
+        &mut self,
+        scene: &Scene,
+        snapshot: &Snapshot,
+        options: &CaptureOptions,
+        style: &FrameStyle,
+        editor: &crate::EditorFrame<'_>,
+    ) -> Result<bool, Problem> {
+        self.gpu.check()?;
+        let [x, y, w, h] = editor.viewport;
+        if w == 0
+            || h == 0
+            || x >= self.config.width
+            || y >= self.config.height
+            || w > self.config.width - x
+            || h > self.config.height - y
+        {
+            return Err(gpu::error("editor viewport outside the window"));
+        }
+        let geometry = geometry::build_styled(scene, snapshot, options, style)?;
+        let gui = self
+            .gui
+            .get_or_insert_with(|| crate::gui::GuiPainter::new(&self.gpu, self.config.format));
+        // Consume texture changes even if surface acquisition is recoverably lost.
+        gui.prepare(&self.gpu, editor, self.config.width, self.config.height)?;
+        if self.minimized {
+            gui.free(editor.textures);
+            return Ok(false);
+        }
+        let frame = match self.surface.get_current_texture() {
+            Ok(frame) => frame,
+            Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
+                gui.free(editor.textures);
+                self.resize(self.config.width, self.config.height)?;
+                return Ok(false);
+            }
+            Err(wgpu::SurfaceError::Timeout) => {
+                gui.free(editor.textures);
+                return Ok(false);
+            }
+            Err(e) => return Err(gpu::error(e)),
+        };
+        let view = frame.texture.create_view(&Default::default());
+        let mut encoder =
+            self.gpu
+                .encode_viewport(&geometry, &view, &self.depth, Some(editor.viewport));
+        gui.encode(&mut encoder, &view);
+        self.gpu.queue.submit([encoder.finish()]);
+        frame.present();
+        gui.free(editor.textures);
         self.gpu
             .device
             .poll(wgpu::PollType::Poll)

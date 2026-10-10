@@ -173,3 +173,32 @@ fn capture_process_preserves_checks_snapshot_and_existing_files() {
     assert_eq!(value["report"]["passed"], false);
     std::fs::remove_dir_all(directory).unwrap();
 }
+
+#[test]
+fn project_creation_validation_and_existing_folder_protection() {
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let directory =
+        std::env::temp_dir().join(format!("tomo-cli-project-{}-{nonce}", std::process::id()));
+    let path = directory.to_str().unwrap();
+    let (code, value) = invoke(&["project", "new", path, "--name", "New Game"]);
+    assert_eq!(code, 0, "{value}");
+    assert_eq!(value["project"]["name"], "New Game");
+    let file = directory.join(tomo_project::PROJECT_FILE);
+    let before = std::fs::read(&file).unwrap();
+    let (code, value) = invoke(&["project", "validate", path]);
+    assert_eq!(code, 0, "{value}");
+    assert_eq!(value["project"]["game"]["player"], "player");
+    let (code, _) = invoke(&["project", "new", path, "--name", "Other"]);
+    assert_ne!(code, 0);
+    assert_eq!(std::fs::read(&file).unwrap(), before);
+    let mut project: Value = serde_json::from_slice(&before).unwrap();
+    project["game"]["goal"] = serde_json::json!("missing");
+    std::fs::write(&file, project.to_string()).unwrap();
+    let (code, value) = invoke(&["project", "validate", path]);
+    assert_eq!(code, 2);
+    assert_eq!(value["error"]["code"], "GAME_RULES");
+    std::fs::remove_dir_all(directory).unwrap();
+}

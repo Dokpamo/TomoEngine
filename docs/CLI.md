@@ -114,3 +114,15 @@ run 보고는 기본값이 적용되고 ID로 정렬된 scene, runtime version, 
 OS/architecture, runtime fma feature와 snapshot을 포함한다. 정확한 바이너리 해시,
 compiler flags, lockfile hash와 장기 trace는 아직 포함하지 않는다.
 동일 프로세스 재현 테스트를 플랫폼 간 bit-identical 결정론 증명으로 취급하지 않는다.
+
+## 프로젝트 생성과 검사
+
+```sh
+cargo run -q -p tomo-cli --locked --offline -- project new ./MyGame --name "My Game"
+cargo run -q -p tomo-cli --locked --offline -- project validate ./MyGame
+```
+
+new는 존재하지 않는 폴더에 project.tomo.json을 만든다. validate는 프로젝트/Scene/게임
+참조·수치·실제 world 구축을 검사하며 파일을 바꾸지 않는다. 두 명령은 기본 CLI에 포함되고
+GPU를 초기화하지 않는다. 에디터와 독립 플레이어가 동일 파일을 사용한다. 원자성·저장 충돌과
+한도는 [EDITOR.md](EDITOR.md), 구조 명세는 schemas/project-v1.schema.json을 따른다.

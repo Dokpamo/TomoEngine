@@ -61,6 +61,15 @@ impl Replay {
     pub fn run(&self, game: &mut Game) -> Result<bool, Problem> {
         // Public Rust callers receive the same limits as JSON callers, before any mutation.
         self.validate()?;
+        let bodies = game.scene().bodies.len().max(1) as u64;
+        let ticks: u64 = self.segments.iter().map(|s| u64::from(s.ticks)).sum();
+        if bodies * bodies * ticks > tomo_runtime::MAX_WORK_UNITS {
+            return Err(Problem::new(
+                "LIMIT",
+                "/segments",
+                "replay body-squared work budget exceeded",
+            ));
+        }
         for segment in &self.segments {
             for _ in 0..segment.ticks {
                 game.step(segment.input)?;

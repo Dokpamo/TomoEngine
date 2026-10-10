@@ -128,7 +128,7 @@ impl ApplicationHandler for App {
             return;
         }
         let attributes = Window::default_attributes()
-            .with_title("Tomo Engine - Box Run")
+            .with_title(format!("Tomo Engine - {}", self.game.scene().name))
             .with_inner_size(LogicalSize::new(1120., 760.))
             .with_min_inner_size(LogicalSize::new(800., 600.));
         let window = match event_loop.create_window(attributes) {
@@ -246,11 +246,11 @@ impl ApplicationHandler for App {
     }
 }
 
-pub fn run(smoke_frames: Option<u32>) -> Result<u8, Problem> {
+pub fn run(game: Game, smoke_frames: Option<u32>) -> Result<u8, Problem> {
     let event_loop =
         EventLoop::new().map_err(|e| Problem::new("WINDOW", "/event_loop", e.to_string()))?;
     let mut app = App {
-        game: Game::new()?,
+        game,
         renderer: None,
         window: None,
         keys: BTreeSet::new(),

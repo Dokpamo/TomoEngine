@@ -10,9 +10,12 @@ EXPECTED = {
     "tomo-physics": set(),
     "tomo-scene": {"serde", "serde_json"},
     "tomo-runtime": {"serde", "tomo-scene", "tomo-physics"},
-    "tomo-render": {"serde", "serde_json", "tomo-scene", "tomo-runtime", "wgpu", "pollster", "png"},
-    "tomo-cli": {"serde_json", "tomo-scene", "tomo-runtime", "tomo-render"},
-    "tomo-play": {"serde", "serde_json", "tomo-scene", "tomo-runtime", "tomo-render", "winit"},
+    "tomo-render": {"serde", "serde_json", "tomo-scene", "tomo-runtime", "wgpu", "pollster", "png", "egui"},
+    "tomo-game": {"serde", "serde_json", "tomo-scene", "tomo-runtime"},
+    "tomo-project": {"serde", "serde_json", "tomo-scene", "tomo-runtime", "tomo-game"},
+    "tomo-editor": {"serde_json", "tomo-project", "tomo-scene", "tomo-game", "tomo-render", "winit", "egui", "egui-winit"},
+    "tomo-cli": {"tomo-project", "serde_json", "tomo-scene", "tomo-runtime", "tomo-render"},
+    "tomo-play": {"tomo-project", "tomo-game", "serde_json", "tomo-scene", "tomo-render", "winit"},
 }
 REVIEWED = {
     "serde", "serde_core", "serde_derive", "serde_json", "itoa", "memchr", "ryu",
@@ -60,7 +63,7 @@ def main():
     nodes = {node["id"]: node for node in data["resolve"]["nodes"]}
     packages = {package["id"]: package for package in data["packages"]}
     visited = set()
-    pending = [local[name]["id"] for name in ("tomo-physics", "tomo-scene", "tomo-runtime")]
+    pending = [local[name]["id"] for name in ("tomo-physics", "tomo-scene", "tomo-runtime", "tomo-game", "tomo-project")]
     while pending:
         identity = pending.pop()
         if identity in visited:

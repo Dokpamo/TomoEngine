@@ -70,3 +70,50 @@ fn game_capture_and_existing_output_protection() {
     assert_eq!(std::fs::read(&path).unwrap(), before);
     std::fs::remove_file(path).unwrap();
 }
+
+#[test]
+fn saved_custom_project_runs_with_its_own_roles_and_goal() {
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let directory =
+        std::env::temp_dir().join(format!("tomo-custom-play-{}-{nonce}", std::process::id()));
+    let mut project = tomo_project::Project::template("Custom Game").unwrap();
+    for body in &mut project.scene.bodies {
+        if body.id == "player" {
+            body.id = "hero".into();
+        }
+        if body.id == "goal" {
+            body.id = "finish".into();
+            body.position = [-5., 0.035, 4.];
+        }
+    }
+    project.game.player = "hero".into();
+    project.game.goal = "finish".into();
+    project.game.speed = 1.;
+    tomo_project::ProjectFile::create(&directory, &project).unwrap();
+    let replay = directory.join("input.json");
+    std::fs::write(
+        &replay,
+        r#"{"schema_version":1,"segments":[{"ticks":1,"input":{"right":true}}],"expect_win":true}"#,
+    )
+    .unwrap();
+    let (code, value) = invoke(&[
+        "--project",
+        directory.to_str().unwrap(),
+        "--replay",
+        replay.to_str().unwrap(),
+    ]);
+    assert_eq!(code, 0, "{value}");
+    assert_eq!(value["status"], "won");
+    assert_eq!(value["snapshot"]["tick"], 1);
+    assert!(
+        value["snapshot"]["bodies"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|b| b["id"] == "hero")
+    );
+    std::fs::remove_dir_all(directory).unwrap();
+}

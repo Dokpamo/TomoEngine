@@ -351,3 +351,98 @@ pub(crate) fn build_styled(
         bodies,
     })
 }
+
+fn ray(options: &CaptureOptions, pixel: [f32; 2]) -> Result<([f32; 3], [f32; 3]), Problem> {
+    let projection = Projection::new(options)?;
+    if pixel.iter().any(|v| !v.is_finite()) {
+        return Err(Problem::new("RENDER_INPUT", "/pixel", "non-finite pointer"));
+    }
+    let x = (2. * pixel[0] / options.width as f32 - 1.) * projection.aspect / projection.scale;
+    let y = (1. - 2. * pixel[1] / options.height as f32) / projection.scale;
+    let direction = unit(std::array::from_fn(|i| {
+        projection.forward[i] + projection.right[i] * x + projection.up[i] * y
+    }))?;
+    Ok((options.camera.eye, direction))
+}
+
+/// Pick the nearest actual box/sphere intersection, including rotated boxes.
+pub fn pick_body(
+    scene: &Scene,
+    snapshot: &Snapshot,
+    options: &CaptureOptions,
+    pixel: [f32; 2],
+) -> Result<Option<String>, Problem> {
+    let bodies = project_bodies(scene, snapshot, options)?;
+    let (origin, direction) = ray(options, pixel)?;
+    let forward = unit(sub(options.camera.target, origin))?;
+    let min = options.camera.near / dot(direction, forward);
+    let max = options.camera.far / dot(direction, forward);
+    let mut closest = max;
+    let mut selected = None;
+    for body in bodies {
+        let [x, y, z, w] = body.rotation;
+        let inverse = [-x, -y, -z, w];
+        let o = rotate(sub(origin, body.position), inverse);
+        let d = rotate(direction, inverse);
+        let hit = match body.shape {
+            ShapeSpec::Box { half_extents: h } => {
+                let mut near = min;
+                let mut far = closest;
+                for i in 0..3 {
+                    if d[i].abs() < 1e-7 {
+                        if o[i].abs() > h[i] {
+                            far = -1.;
+                        }
+                    } else {
+                        let a = (-h[i] - o[i]) / d[i];
+                        let b = (h[i] - o[i]) / d[i];
+                        near = near.max(a.min(b));
+                        far = far.min(a.max(b));
+                    }
+                }
+                (near <= far).then_some(near)
+            }
+            ShapeSpec::Sphere { radius } => {
+                let b = dot(o, d);
+                let c = dot(o, o) - radius * radius;
+                let disc = b * b - c;
+                if disc < 0. {
+                    None
+                } else {
+                    let near = -b - disc.sqrt();
+                    let far = -b + disc.sqrt();
+                    let t = if near >= min { near } else { far };
+                    (t >= min && t <= closest).then_some(t)
+                }
+            }
+        };
+        if let Some(t) = hit {
+            if t < closest {
+                closest = t;
+                selected = Some(body.id);
+            }
+        }
+    }
+    Ok(selected)
+}
+
+/// Intersect a pointer ray with a horizontal editing plane. Parallel/behind-camera rays return None.
+pub fn plane_position(
+    options: &CaptureOptions,
+    pixel: [f32; 2],
+    height: f32,
+) -> Result<Option<[f32; 3]>, Problem> {
+    if !height.is_finite() {
+        return Err(Problem::new(
+            "RENDER_INPUT",
+            "/plane",
+            "invalid editing plane",
+        ));
+    }
+    let (o, d) = ray(options, pixel)?;
+    if d[1].abs() < 1e-6 {
+        return Ok(None);
+    }
+    let t = (height - o[1]) / d[1];
+    Ok((t > 0. && t < options.camera.far).then(|| std::array::from_fn(|i| o[i] + d[i] * t)))
+}

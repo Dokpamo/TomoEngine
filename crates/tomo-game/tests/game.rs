@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-use tomo_play::{FrameClock, Game, Input, Replay, Status};
+use tomo_game::{FrameClock, Game, Input, Replay, Status};
 
 const WIN: &str = include_str!("../../../examples/replays/box_run_win.replay.json");
 
