@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 //! Public API regressions. These are not differential tests against C++ Jolt.
 use tomo_physics::{
-    BodySettings, CollisionFilter, ContactEventKind, PhysicsSettings, PhysicsSystem, RayCastOptions,
-    Shape, Vec3,
+    BodySettings, CollisionFilter, ContactEventKind, PhysicsSettings, PhysicsSystem,
+    RayCastOptions, Shape, Vec3,
 };
 
 fn free_world() -> PhysicsSystem {
