@@ -11,7 +11,7 @@ pub const PROJECT_FILE: &str = "project.tomo.json";
 fn error(path: &Path, e: impl std::fmt::Display) -> Problem {
     Problem::new("IO", path.display().to_string(), e.to_string())
 }
-fn read(path: &Path) -> Result<String, Problem> {
+pub(crate) fn read(path: &Path) -> Result<String, Problem> {
     let meta = fs::symlink_metadata(path).map_err(|e| error(path, e))?;
     if !meta.is_file() || meta.file_type().is_symlink() {
         return Err(error(
@@ -125,4 +125,29 @@ impl ProjectFile {
         let _ = fs::remove_file(&lock_path);
         result
     }
+}
+
+/// Atomic local save slot replacement. A cooperative lock excludes other Tomo writers.
+pub(crate) fn replace_data(path: &Path, text: &str) -> Result<(), Problem> {
+    let lock_path = path.with_extension("json.lock");
+    let lock = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&lock_path)
+        .map_err(|e| Problem::new("SAVE_LOCK", lock_path.display().to_string(), e.to_string()))?;
+    let result = (|| {
+        if fs::symlink_metadata(path).is_ok() {
+            read(path)?;
+        }
+        let temporary = path.with_extension("json.tmp");
+        write_new(&temporary, text)?;
+        if let Err(e) = fs::rename(&temporary, path) {
+            let _ = fs::remove_file(&temporary);
+            return Err(error(path, e));
+        }
+        Ok(())
+    })();
+    drop(lock);
+    let _ = fs::remove_file(lock_path);
+    result
 }

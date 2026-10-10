@@ -210,17 +210,20 @@ fn project_template_keeps_box_run_replay_and_bounds_large_project_replay_work() 
 }
 
 #[test]
-fn legacy_files_migrate_explicitly_in_memory_and_only_save_as_v2_when_requested() {
+fn legacy_files_migrate_explicitly_in_memory_and_only_save_as_v3_when_requested() {
     let tmp = Temp::new();
     let old = template();
     let file = ProjectFile::create(tmp.child(), &old).unwrap();
     let mut value = serde_json::to_value(&old).unwrap();
+    for key in ["scene_id", "content", "next_scene", "scenes", "prefabs"] {
+        value.as_object_mut().unwrap().remove(key);
+    }
     value["schema_version"] = serde_json::json!(1);
     value["game"].as_object_mut().unwrap().remove("logic");
     let legacy = value.to_string();
     fs::write(file.path(), &legacy).unwrap();
     let mut file = ProjectFile::open(tmp.child()).unwrap();
-    assert_eq!(file.project().schema_version, 2);
+    assert_eq!(file.project().schema_version, 3);
     assert_eq!(file.project().revision, old.revision);
     assert!(!file.is_dirty(file.project()));
     assert_eq!(fs::read_to_string(file.path()).unwrap(), legacy);
@@ -234,7 +237,7 @@ fn legacy_files_migrate_explicitly_in_memory_and_only_save_as_v2_when_requested(
     assert_eq!(game.elapsed_ticks(), 514);
     file.save(&migrated).unwrap();
     let saved: serde_json::Value = serde_json::from_slice(&fs::read(file.path()).unwrap()).unwrap();
-    assert_eq!(saved["schema_version"], 2);
+    assert_eq!(saved["schema_version"], 3);
     assert_eq!(saved["game"]["logic"]["schema_version"], 1);
     value["game"]["logic"] = serde_json::to_value(tomo_game::Logic::default()).unwrap();
     assert!(

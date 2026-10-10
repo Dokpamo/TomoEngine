@@ -169,3 +169,35 @@ pub fn style(game: &Game, view: &CaptureOptions, paused: bool) -> FrameStyle {
     }
     style
 }
+
+pub fn hud_state(game: &Game, paused: bool) -> tomo_render::HudState {
+    tomo_render::HudState {
+        score: game.score(),
+        seconds: game.seconds(),
+        paused,
+        status: match game.status() {
+            Status::Ready => tomo_scene::Visibility::Ready,
+            Status::Playing => tomo_scene::Visibility::Playing,
+            Status::Won => tomo_scene::Visibility::Won,
+            Status::Lost => tomo_scene::Visibility::Lost,
+        },
+    }
+}
+pub fn frame(
+    game: &Game,
+    width: u32,
+    height: u32,
+    colliders: bool,
+    paused: bool,
+) -> Result<(CaptureOptions, FrameStyle), tomo_scene::Problem> {
+    let mut view = options(width, height, colliders);
+    view.camera = tomo_render::content_camera(game.content(), game.snapshot(), game.seconds())?;
+    let mut style = style(game, &view, paused);
+    if !game.content().default_hud {
+        style.rectangles.clear();
+        style.text.clear();
+    }
+    tomo_render::content_visuals(game.content(), game.snapshot(), game.seconds(), &mut style)?;
+    tomo_render::content_hud(game.content(), hud_state(game, paused), &view, &mut style);
+    Ok((view, style))
+}

@@ -6,8 +6,8 @@
 
 > 현재 구현은 **초기 primitive 물리 런타임 + AI용 장면 도구 + GPU 렌더러 + 프로젝트 에디터 + Box Run 게임**입니다.
 > 에디터에서 장면을 만들고 저장한 뒤, 같은 프로젝트를 게임 창에서 실행할 수 있습니다.
-> GLB/스키닝, Tripo 연동, 자율 AI 에이전트, 모바일/콘솔 게임 빌드는
-> 아직 없습니다. Jolt 전체 기능·수치·성능 동등성도 아직 달성하지 않았습니다.
+> 일반 객체·카메라·여러 장면·프리팹·Rust SDK·게임 UI·합성 효과음·진행 저장과 모바일 패키저를 제공합니다.
+> GLB/스키닝, Tripo 연동, 자율 AI 에이전트와 콘솔 지원은 없습니다. Jolt 전체 기능·수치·성능 동등성도 아직 달성하지 않았습니다.
 
 ## 시작할 문서
 
@@ -28,12 +28,13 @@ crates/
   tomo-scene/       버전 있는 JSON 장면·검증·문서 patch
   tomo-runtime/     장면 → physics, 고정 tick, 상태·검사 보고
   tomo-game/        창 없는 플레이 규칙·컨트롤러·입력 재현
-  tomo-project/     프로젝트 v1·검증·저장·문서 이력
+  tomo-project/     프로젝트 v3·다중 장면·프리팹·저장·작업 이력
   tomo-render/      snapshot → 구·상자, 카메라·깊이·조명·충돌체 표시·PNG
 tools/
   tomo-cli/        AI/사람이 호출하는 Rust tomo 명령
   tomo-play/       프로젝트 / 내장 Box Run을 실행하는 게임 창
-  tomo-editor/     오브젝트 편집·프로젝트 저장·Play/Stop
+  tomo-editor/     Studio·게임 로직 편집·프로젝트 저장·Play/Stop
+  tomo-android/    NativeActivity 시작점과 게임 호스트 연결
 schemas/           Project/Scene/Patch/View/Replay v1 구조 명세
 examples/          낙하 장면, 의도적 실패 장면, 수정 요청
 scripts/           의존성·계층 정책 검사
@@ -71,7 +72,9 @@ macOS 앱은 `python3 scripts/package-macos.py --editor`로 `target/Tomo Editor.
 **Logic → + Space jump / + Time limit → Apply rules → Done**으로 게임 규칙도 직접 만듭니다.
 키 입력·접촉·점수 조건과 이동·승리·실패를 연결하고, Play와 독립 게임에서 같은 규칙을 실행합니다.
 예제는 `examples/projects/logic_lab`입니다. [에디터 조작](docs/EDITOR.md)과 [게임 로직 작성](docs/LOGIC.md)을 참고하세요.
-범용 Rust/스크립트 SDK와 노드 그래프는 후속입니다.
+**Studio**에서 일반 객체·카메라·장면·프리팹·게임 UI·효과음을 편집합니다. 통합 예제는
+`examples/projects/creator_lab`입니다. [제작 v3와 Rust SDK](docs/AUTHORING.md),
+[플랫폼 패키징과 검증 현황](docs/PLATFORMS.md)을 참고하세요. 노드 그래프는 후속입니다.
 
 ## 게임 실행
 

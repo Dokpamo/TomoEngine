@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "$id": "urn:tomo:checkpoint:1",
+  "title": "Tomo bounded declarative checkpoint v1",
+  "required": [
+    "schema_version",
+    "engine_version",
+    "fma",
+    "scene",
+    "rules",
+    "content",
+    "inputs",
+    "elapsed_ticks",
+    "status",
+    "score",
+    "best_ticks",
+    "manual_start"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "engine_version": {
+      "const": "0.1.0"
+    },
+    "fma": {
+      "type": "boolean"
+    },
+    "scene": {
+      "$ref": "urn:tomo:scene:1"
+    },
+    "rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "player",
+        "goal",
+        "speed",
+        "logic"
+      ],
+      "properties": {
+        "player": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$"
+            },
+            {
+              "const": ""
+            }
+          ]
+        },
+        "goal": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$"
+            },
+            {
+              "const": ""
+            }
+          ]
+        },
+        "speed": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 30
+        },
+        "logic": {
+          "$ref": "urn:tomo:logic:1"
+        }
+      }
+    },
+    "content": {
+      "$ref": "urn:tomo:content:1"
+    },
+    "inputs": {
+      "type": "array",
+      "maxItems": 1024,
+      "items": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ticks",
+          "input"
+        ],
+        "properties": {
+          "ticks": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 36000
+          },
+          "input": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "up",
+              "down",
+              "left",
+              "right"
+            ],
+            "properties": {
+              "up": {
+                "type": "boolean"
+              },
+              "down": {
+                "type": "boolean"
+              },
+              "left": {
+                "type": "boolean"
+              },
+              "right": {
+                "type": "boolean"
+              },
+              "action": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    },
+    "elapsed_ticks": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 36000
+    },
+    "status": {
+      "enum": [
+        "ready",
+        "playing",
+        "won",
+        "lost"
+      ]
+    },
+    "score": {
+      "type": "integer",
+      "minimum": -2147483648,
+      "maximum": 2147483647
+    },
+    "best_ticks": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1,
+      "maximum": 4294967295
+    },
+    "manual_start": {
+      "type": "boolean"
+    }
+  }
+}

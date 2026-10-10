@@ -1,0 +1,215 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:tomo:project:3",
+  "title": "Tomo project v3",
+  "$comment": "Loader migrates strict v1/v2 projects. Runtime validates all scenes, next-scene links, prefab references, content budgets and combined document byte size.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "revision",
+    "name",
+    "scene",
+    "game",
+    "scene_id",
+    "content",
+    "next_scene",
+    "scenes",
+    "prefabs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 3
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 18446744073709551615
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "scene": {
+      "$ref": "urn:tomo:scene:1"
+    },
+    "game": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "player",
+        "goal",
+        "speed",
+        "logic"
+      ],
+      "properties": {
+        "player": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$"
+            },
+            {
+              "const": ""
+            }
+          ]
+        },
+        "goal": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$"
+            },
+            {
+              "const": ""
+            }
+          ]
+        },
+        "speed": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 30
+        },
+        "logic": {
+          "$ref": "urn:tomo:logic:1"
+        }
+      }
+    },
+    "scene_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "content": {
+      "$ref": "urn:tomo:content:1"
+    },
+    "next_scene": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "scenes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "scene",
+          "game",
+          "content",
+          "next_scene"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$"
+          },
+          "scene": {
+            "$ref": "urn:tomo:scene:1"
+          },
+          "game": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "player",
+              "goal",
+              "speed",
+              "logic"
+            ],
+            "properties": {
+              "player": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_-]{1,64}$"
+                  },
+                  {
+                    "const": ""
+                  }
+                ]
+              },
+              "goal": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_-]{1,64}$"
+                  },
+                  {
+                    "const": ""
+                  }
+                ]
+              },
+              "speed": {
+                "type": "number",
+                "minimum": 0.1,
+                "maximum": 30
+              },
+              "logic": {
+                "$ref": "urn:tomo:logic:1"
+              }
+            }
+          },
+          "content": {
+            "$ref": "urn:tomo:content:1"
+          },
+          "next_scene": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "minItems": 0,
+      "maxItems": 15
+    },
+    "prefabs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "entities",
+          "bodies"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$"
+          },
+          "entities": {
+            "type": "array",
+            "items": {
+              "$ref": "urn:tomo:content:1#/$defs/entity"
+            },
+            "minItems": 1,
+            "maxItems": 64
+          },
+          "bodies": {
+            "type": "array",
+            "items": {
+              "$ref": "urn:tomo:scene:1#/$defs/body"
+            },
+            "minItems": 0,
+            "maxItems": 64
+          }
+        }
+      },
+      "minItems": 0,
+      "maxItems": 32
+    }
+  }
+}

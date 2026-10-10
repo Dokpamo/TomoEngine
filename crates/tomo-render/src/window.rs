@@ -81,6 +81,9 @@ impl WindowRenderer {
             return Ok(());
         }
         let limit = self.gpu.device.limits().max_texture_dimension_2d;
+        if self.config.width == width.min(limit) && self.config.height == height.min(limit) {
+            return Ok(());
+        }
         self.config.width = width.min(limit);
         self.config.height = height.min(limit);
         self.surface.configure(&self.gpu.device, &self.config);
@@ -104,7 +107,7 @@ impl WindowRenderer {
         let frame = match self.surface.get_current_texture() {
             Ok(frame) => frame,
             Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
-                self.resize(self.config.width, self.config.height)?;
+                self.surface.configure(&self.gpu.device, &self.config);
                 return Ok(false);
             }
             Err(wgpu::SurfaceError::Timeout) => return Ok(false),
@@ -159,7 +162,7 @@ impl WindowRenderer {
             Ok(frame) => frame,
             Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
                 gui.free(editor.textures);
-                self.resize(self.config.width, self.config.height)?;
+                self.surface.configure(&self.gpu.device, &self.config);
                 return Ok(false);
             }
             Err(wgpu::SurfaceError::Timeout) => {

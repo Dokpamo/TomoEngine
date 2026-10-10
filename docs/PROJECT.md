@@ -60,7 +60,8 @@ Tripo 작업을 사용하고, 리깅·애니메이션·에셋 예산을 검증�
 작업 자원 한도, 네트워크 정책과 사용자 승인을 갖춰야 한다.
 
 사람의 제작 흐름은 에디터·프로젝트(M2E)에 이어 선언적 게임 규칙 편집(M2L)까지 확장한다.
-이것은 범용 Rust 게임 SDK·게임 UI·오디오·저장 등 M4 전체와 구분한다.
+제작 v3는 일반 entity/scene/prefab·Rust SDK·게임 UI·합성음·선언적 저장과 AI 편집까지 확장했다.
+구현 한도는 AUTHORING.md, 플랫폼별 증거는 PLATFORMS.md이며 최종 M4/M6 전체와 구분한다.
 
 현재 단계와 다음 수행 작업: [ROADMAP.md](ROADMAP.md).
 아키텍처와 의존성 정책: [ARCHITECTURE.md](ARCHITECTURE.md).

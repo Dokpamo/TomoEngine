@@ -1,3 +1,9 @@
 /target/
 *.profraw
 .DS_Store
+
+.tomo-code-journal/
+**/.tomo-journal/
+**/progress.tomo.json
+
+__pycache__/

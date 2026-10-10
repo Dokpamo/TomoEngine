@@ -1,8 +1,13 @@
 // SPDX-License-Identifier: MIT
 //! Versioned game projects, transactional editing and conflict-aware local persistence.
 #![forbid(unsafe_code)]
+pub mod journal;
+mod session;
 mod storage;
+mod workspace;
+pub use session::Session;
 pub use storage::{PROJECT_FILE, ProjectFile};
+pub use workspace::{Level, Prefab};
 
 use serde::{Deserialize, Serialize};
 use tomo_game::{Game, GameRules};
@@ -17,6 +22,11 @@ pub struct Project {
     pub name: String,
     pub scene: Scene,
     pub game: GameRules,
+    pub scene_id: String,
+    pub content: tomo_scene::Content,
+    pub next_scene: Option<String>,
+    pub scenes: Vec<Level>,
+    pub prefabs: Vec<Prefab>,
 }
 
 // Preserve the v1 contract, including rejecting unknown fields inside the old game object.
@@ -36,16 +46,30 @@ struct LegacyGame {
     goal: String,
     speed: f32,
 }
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct LegacyProjectV2 {
+    schema_version: u32,
+    revision: u64,
+    name: String,
+    scene: Scene,
+    game: GameRules,
+}
 impl Project {
     pub fn template(name: &str) -> Result<Self, Problem> {
         let mut scene = Scene::from_json(tomo_game::LEVEL)?;
         scene.name = name.into();
         let project = Self {
-            schema_version: 2,
+            schema_version: 3,
             revision: 0,
             name: name.into(),
             scene,
             game: GameRules::default(),
+            scene_id: "main".into(),
+            content: Default::default(),
+            next_scene: None,
+            scenes: vec![],
+            prefabs: vec![],
         };
         project.validate()?;
         Ok(project)
@@ -64,8 +88,15 @@ impl Project {
             1 => {
                 let old: LegacyProject = serde_json::from_str(text).map_err(json_error)?;
                 debug_assert_eq!(old.schema_version, 1);
+                if old.game.player.is_empty() || old.game.goal.is_empty() {
+                    return Err(Problem::new(
+                        "GAME_RULES",
+                        "/game",
+                        "legacy projects require player and goal IDs",
+                    ));
+                }
                 Self {
-                    schema_version: 2,
+                    schema_version: 3,
                     revision: old.revision,
                     name: old.name,
                     scene: old.scene,
@@ -75,14 +106,42 @@ impl Project {
                         speed: old.game.speed,
                         logic: tomo_game::Logic::default(),
                     },
+                    scene_id: "main".into(),
+                    content: Default::default(),
+                    next_scene: None,
+                    scenes: vec![],
+                    prefabs: vec![],
                 }
             }
-            2 => serde_json::from_str(text).map_err(json_error)?,
+            2 => {
+                let old: LegacyProjectV2 = serde_json::from_str(text).map_err(json_error)?;
+                debug_assert_eq!(old.schema_version, 2);
+                if old.game.player.is_empty() || old.game.goal.is_empty() {
+                    return Err(Problem::new(
+                        "GAME_RULES",
+                        "/game",
+                        "legacy projects require player and goal IDs",
+                    ));
+                }
+                Self {
+                    schema_version: 3,
+                    revision: old.revision,
+                    name: old.name,
+                    scene: old.scene,
+                    game: old.game,
+                    scene_id: "main".into(),
+                    content: Default::default(),
+                    next_scene: None,
+                    scenes: vec![],
+                    prefabs: vec![],
+                }
+            }
+            3 => serde_json::from_str(text).map_err(json_error)?,
             _ => {
                 return Err(Problem::new(
                     "VERSION",
                     "/schema_version",
-                    "only project v1 and v2 are supported",
+                    "only project v1, v2 and v3 are supported",
                 ));
             }
         };
@@ -90,11 +149,11 @@ impl Project {
         Ok(project)
     }
     pub fn validate(&self) -> Result<(), Problem> {
-        if self.schema_version != 2 {
+        if self.schema_version != 3 {
             return Err(Problem::new(
                 "VERSION",
                 "/schema_version",
-                "in-memory projects must be v2; use from_json to migrate v1",
+                "in-memory projects must be v3; use from_json to migrate v1/v2",
             ));
         }
         if self.name.trim().is_empty()
@@ -109,12 +168,13 @@ impl Project {
         }
         self.scene.validate()?;
         self.game.validate(&self.scene)?;
+        self.validate_workspace()?;
         Runtime::from_scene(self.scene.clone())?;
         Ok(())
     }
     pub fn game(&self) -> Result<Game, Problem> {
         self.validate()?;
-        Game::from_scene(self.scene.clone(), self.game.clone())
+        Game::with_content(self.scene.clone(), self.game.clone(), self.content.clone())
     }
     pub fn to_json(&self) -> Result<String, Problem> {
         self.validate()?;

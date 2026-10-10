@@ -1,0 +1,222 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-10",
+  "tested_rust_source_sha256": "52bdda530127ad599f98b428271229b4140eb3e684e013235409f06ea606934b",
+  "source_hash_recipe": "sorted repo-relative paths under crates, tools, examples/rust_game with rs/toml/wgsl extensions plus root Cargo.toml/Cargo.lock; path NUL bytes NUL",
+  "toolchains": [
+    "rustc 1.85.0 (4d91de4e4 2025-02-17)",
+    "rustc 1.96.0 (ac68faa20 2026-05-25)"
+  ],
+  "host": "aarch64-apple-darwin / Apple M4 / Metal",
+  "checks": [
+    {
+      "name": "fmt",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "default",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--workspace",
+        "--locked",
+        "--offline"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "features",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--workspace",
+        "--all-features",
+        "--locked",
+        "--offline"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "release",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--workspace",
+        "--release",
+        "--locked",
+        "--offline"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "release-features",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--workspace",
+        "--release",
+        "--all-features",
+        "--locked",
+        "--offline"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "clippy",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked",
+        "--offline",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "doc",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--workspace",
+        "--no-deps",
+        "--all-features",
+        "--locked",
+        "--offline"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "policy",
+      "command": [
+        "python3",
+        "scripts/check-policy.py"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "code-edit",
+      "command": [
+        "python3",
+        "scripts/test-code-edit.py"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "gpu",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "test",
+        "-p",
+        "tomo-render",
+        "--locked",
+        "--offline",
+        "--test",
+        "capture",
+        "--test",
+        "content",
+        "--",
+        "--include-ignored"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "cli-gpu",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "test",
+        "-p",
+        "tomo-cli",
+        "--features",
+        "render",
+        "--locked",
+        "--offline",
+        "--test",
+        "cli",
+        "--",
+        "--include-ignored"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "play-gpu",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "test",
+        "-p",
+        "tomo-play",
+        "--locked",
+        "--offline",
+        "--",
+        "--include-ignored"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--workspace",
+        "--locked",
+        "--offline"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "ios": {
+    "target": "aarch64-apple-ios-sim",
+    "simulator": "iPhone 17 Pro / iOS 26.5",
+    "verified": [
+      "install",
+      "Metal rendering",
+      "touch movement",
+      "pause",
+      "save",
+      "restart",
+      "load",
+      "next scene",
+      "same-process Home/resume"
+    ],
+    "physical_device_verified": false
+  },
+  "android": {
+    "target": "aarch64-linux-android",
+    "ndk": "28.2.13676358",
+    "verified": [
+      "cdylib build",
+      "APK packaging",
+      "debug signature verification"
+    ],
+    "runtime_verified": false,
+    "blocker": "emulator requires 7372.80 MB userdata space; local disk has less available"
+  },
+  "source_edit": {
+    "compiler_check": "macOS network-denied sandbox passed",
+    "rollback": "compiler check passed"
+  },
+  "jolt_port_changed": false,
+  "external_model_pipeline_implemented": false
+}

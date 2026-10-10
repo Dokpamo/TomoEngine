@@ -51,10 +51,22 @@ fn dispatch(args: &[String]) -> Result<(Value, u8), Problem> {
                 "interactive_window": false,
                 "companion_game": "cargo run -p tomo-play --locked --offline -- [--project DIRECTORY]",
                 "companion_editor": "cargo run -p tomo-editor --locked --offline -- [--project DIRECTORY]",
-                "project_commands": ["project new", "project validate"],
-                "project_schema": 2,
-                "project_import_versions": [1, 2],
+                "project_commands": ["project new", "project validate", "project edit", "project rollback", "project inspect"],
+                "project_schema": 3,
+                "project_import_versions": [1, 2, 3],
                 "declarative_game_logic": true,
+                "content_schema": 1,
+                "general_entities": true,
+                "cameras": true,
+                "scene_switching": true,
+                "prefab_copies": true,
+                "game_ui": true,
+                "synthesized_audio": true,
+                "progress_save": true,
+                "project_edit_journal": true,
+                "compiled_rust_sdk": "examples/rust_game",
+                "code_edit_tool": "scripts/code-edit.py",
+                "package_tool": "scripts/package-game.py",
                 "arbitrary_game_scripts": false,
                 "autonomous_agent": false,
                 "tripo": false,
@@ -74,6 +86,8 @@ fn dispatch(args: &[String]) -> Result<(Value, u8), Problem> {
                     "tomo scene patch SCENE.json PATCH.json", "tomo inspect SCENE.json",
                     "tomo run SCENE.json --ticks N",
                     "tomo project new NEW_DIRECTORY --name NAME", "tomo project validate DIRECTORY",
+                    "tomo project inspect DIRECTORY", "tomo project edit DIRECTORY REQUEST.json",
+                    "tomo project rollback DIRECTORY ORIGINAL_ID --request-id NEW_ID --expected-revision N",
                     "tomo capture SCENE.json --ticks N --output NEW.png [--view VIEW.json] [--colliders] (requires render feature)"],
                 "exit_codes": {"0": "success", "1": "check_failed", "2": "input_error", "3": "runtime_or_output_error"}
             }),
@@ -84,6 +98,39 @@ fn dispatch(args: &[String]) -> Result<(Value, u8), Problem> {
             let file = tomo_project::ProjectFile::create(directory, &project)?;
             Ok((
                 json!({"schema_version":1,"ok":true,"path":file.path(),"project":file.project()}),
+                0,
+            ))
+        }
+        ["project", "inspect", path] => {
+            let file = tomo_project::ProjectFile::open(path)?;
+            Ok((
+                serde_json::to_value(file.project())
+                    .map_err(|e| Problem::new("JSON", "/", e.to_string()))?,
+                0,
+            ))
+        }
+        ["project", "edit", directory, request] => {
+            let request = tomo_project::journal::EditRequest::from_json(&read_document(request)?)?;
+            Ok((
+                json!({"schema_version":1,"ok":true,"receipt":tomo_project::journal::apply_edit(directory,&request)?}),
+                0,
+            ))
+        }
+        [
+            "project",
+            "rollback",
+            directory,
+            original,
+            "--request-id",
+            new_id,
+            "--expected-revision",
+            revision,
+        ] => {
+            let revision = revision
+                .parse()
+                .map_err(|_| Problem::new("ARGUMENT", "/revision", "expected u64 revision"))?;
+            Ok((
+                json!({"schema_version":1,"ok":true,"receipt":tomo_project::journal::rollback(directory,original,new_id,revision)?}),
                 0,
             ))
         }

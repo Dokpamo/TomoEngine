@@ -1,10 +1,14 @@
+> 제작 v3 업데이트: 현재 프로젝트는 v3로 저장하며 v1/v2를 읽습니다. 일반 객체·카메라·장면·
+> 프리팹·UI·효과음·진행 저장·Rust SDK·AI 편집 사용법은 [AUTHORING.md](AUTHORING.md),
+> 패키징과 플랫폼 검증은 [PLATFORMS.md](PLATFORMS.md)를 참고하세요. 아래 기존 v1/v2 설명은 해당 형식/기능의 계약입니다.
+
 # Tomo Editor와 게임 프로젝트
 
 첫 제작 흐름은 **프로젝트 생성 → 장면 편집 → Play → Stop → 저장 → 독립 게임 실행**이다.
 기본 템플릿은 Box Run이며, **Logic**에서 이동·목적지 승리를 포함한 게임 규칙을 편집한다.
 새로운 프로젝트와 장애물 배치, 형상·물리 속성, 플레이어/목적지 참조, 이동 속도와
 키 입력·접촉·타이머·점수·승리/실패 규칙을 만들 수 있다. 조작과 계약은 [LOGIC.md](LOGIC.md).
-범용 Rust 게임 SDK, 스크립트 편집기, GLB 에셋 브라우저는 아직 없다.
+컴파일하는 Rust SDK는 AUTHORING.md를 따른다. 내장 소스 편집기와 GLB 에셋 브라우저는 없다.
 
 ## 실행
 
@@ -49,7 +53,7 @@ UI는 현재 영어이며 기본 폰트의 문자 지원은 제한적이다. 프
 플레이 모드에서는 문서 속성을 수정하지 않는다. Stop은 게임 진행 결과를 문서에 기록하지
 않으며, 재실행은 처음부터다. 에디터 카메라는 세션의 관찰 설정으로 파일에 저장하지 않는다.
 이 첫 템플릿의 독립 플레이어는 기존 Box Run 카메라를 사용한다. 카메라 컴포넌트·일반 엔티티/
-계층·개별 재질·prefab·여러 scene·스크립트·빌드/배포 버튼은 후속이다.
+계층·prefab·여러 scene은 Studio에서 편집한다. 파일 재질·스크립트·GUI 빌드/배포 버튼은 후속이다.
 
 ## 파일과 CLI
 
@@ -66,16 +70,16 @@ cargo run -q -p tomo-play --locked --offline -- --project ./MyGame --replay exam
 
 ```text
 MyGame/
-  project.tomo.json     프로젝트 v2: 이름, revision, Scene v1, game 설정 + Logic v1
+  project.tomo.json     프로젝트 v3: 이름/revision, Scene/Logic/Content, scenes/prefabs
 ```
 
 작동하지 않는 assets/scripts 폴더나 빈 코드를 만들지 않는다. 장면과 규칙을 한 문서에 저장해
-두 파일 사이의 불일치를 피한다. `schemas/project-v2.schema.json`과 `logic-v1.schema.json`은 구조 설명이고, 의미 검사는
+두 파일 사이의 불일치를 피한다. `schemas/project-v3.schema.json`과 `logic-v1.schema.json`은 구조 설명이고, 의미 검사는
 CLI/Rust 검증기가 담당한다. 파일 최대 1 MiB, 최대 256 bodies, unknown 필드/버전 거부,
 유한 수치·고유 ID·참조·단위 quaternion과 실제 physics world 구축을 확인한다.
 게임은 dynamic solid player와 axis-aligned static sensor box goal을 요구한다. 목표 크기는
 플레이어 bounding sphere보다 커야 하며, 이동 속도는 0.1..30m/s다. 외부 코드나 provider는 실행하지 않는다.
-기존 Project v1을 열면 파일을 쓰지 않고 메모리에서 v2로 이행하며, Save부터 v2로 기록한다.
+기존 Project v1/v2를 열면 파일을 쓰지 않고 메모리에서 v3로 이행하며, Save부터 v3로 기록한다.
 replay는 36000 tick/1024 segment 및 body 수 제곱 × 요청 tick <= 5,000,000을 실행 전에 검사한다.
 규칙 평가에도 별도의 5,000,000 작업 예산을 적용한다. 자세한 호환성·한도는 LOGIC.md를 따른다.
 

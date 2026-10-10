@@ -34,6 +34,17 @@ impl GameRules {
         if !self.speed.is_finite() || !(0.1..=30.0).contains(&self.speed) {
             return Err(error("speed must be finite and 0.1..30 metres/second"));
         }
+        if self.player.is_empty() && self.goal.is_empty() {
+            if self.logic.rules.iter().any(|r| {
+                matches!(r.trigger, crate::Trigger::GoalReached {})
+                    || r.actions
+                        .iter()
+                        .any(|a| matches!(a, crate::Action::MovePlayer {}))
+            }) {
+                return Err(error("movement and goal rules need player/goal roles"));
+            }
+            return Ok(());
+        }
         let player = scene
             .bodies
             .iter()

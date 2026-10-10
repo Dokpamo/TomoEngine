@@ -417,3 +417,42 @@ fn dropdowns_author_a_conditional_keyboard_win_without_template_code_changes() {
         "winning did not require reaching the goal"
     );
 }
+
+#[test]
+fn studio_widgets_create_visual_prefab_ui_sound_and_scene_in_one_undoable_document() {
+    let mut app = Ui::new();
+    app.click("Studio");
+    app.click("+ Box visual");
+    assert!(app.editor.document.project().content.entities.is_empty());
+    app.click("Apply changes");
+    app.click("Done");
+    assert_eq!(app.editor.document.project().content.entities.len(), 1);
+    app.click("Studio");
+    app.click("Prefabs");
+    app.click("Capture prefab");
+    app.click("Instantiate at +2m X");
+    app.click("Game UI");
+    app.click("+ UI element");
+    app.click("Audio");
+    app.click("+ Sound cue");
+    app.click("Scenes");
+    app.click("Duplicate scene");
+    app.click("Apply changes");
+    app.click("Done");
+    let p = app.editor.document.project();
+    assert_eq!(p.content.entities.len(), 2);
+    assert_eq!(p.prefabs.len(), 1);
+    assert_eq!(p.scenes.len(), 1);
+    assert_eq!(p.content.ui.len(), 1);
+    assert_eq!(p.content.sounds.len(), 1);
+    app.click("Undo");
+    assert_eq!(app.editor.document.project().content.entities.len(), 1);
+    assert!(app.editor.document.project().prefabs.is_empty());
+    app.click("Redo");
+    app.click("Play");
+    assert_eq!(
+        app.editor.game.as_ref().unwrap().content().entities.len(),
+        2
+    );
+    app.click("Stop");
+}

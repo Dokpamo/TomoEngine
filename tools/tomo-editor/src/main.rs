@@ -23,6 +23,8 @@ use winit::{
 };
 
 struct App {
+    audio: Option<tomo_render::audio::AudioPlayer>,
+    audio_tried: bool,
     editor: Editor,
     ui: EditorUi,
     ctx: egui::Context,
@@ -113,8 +115,33 @@ impl App {
                     self.editor.report(Err(e), "");
                     break;
                 }
+                let sounds = self
+                    .editor
+                    .game
+                    .as_mut()
+                    .map(|g| g.take_sounds())
+                    .unwrap_or_default();
+                if !sounds.is_empty() {
+                    if !self.audio_tried {
+                        self.audio_tried = true;
+                        match tomo_render::audio::AudioPlayer::new() {
+                            Ok(a) => self.audio = Some(a),
+                            Err(e) => self.editor.report(Err(e), ""),
+                        }
+                    }
+                    if let Some(a) = &self.audio {
+                        for cue in sounds {
+                            if let Err(e) = a.play(&cue) {
+                                self.editor.report(Err(e), "");
+                            }
+                        }
+                    }
+                }
             }
         } else {
+            if let Some(a) = &self.audio {
+                a.clear();
+            }
             self.clock.reset();
         }
         let ppp = output.pixels_per_point;
@@ -138,8 +165,42 @@ impl App {
             textures: &output.textures_delta,
             pixels_per_point: ppp,
         };
-        let options = self.ui.options();
-        let style = self.ui.style(&self.editor);
+        let mut options = self.ui.options();
+        let mut style = self.ui.style(&self.editor);
+        if let Some(game) = &self.editor.game {
+            options.camera =
+                tomo_render::content_camera(game.content(), game.snapshot(), game.seconds())?;
+            tomo_render::content_visuals(
+                game.content(),
+                game.snapshot(),
+                game.seconds(),
+                &mut style,
+            )?;
+            tomo_render::content_hud(
+                game.content(),
+                tomo_editor::hud_state(game, self.editor.paused),
+                &options,
+                &mut style,
+            );
+        } else {
+            tomo_render::content_visuals(
+                &self.editor.document.project().content,
+                self.editor.document.snapshot(),
+                0.,
+                &mut style,
+            )?;
+            tomo_render::content_hud(
+                &self.editor.document.project().content,
+                tomo_render::HudState {
+                    score: 0,
+                    seconds: 0.,
+                    paused: false,
+                    status: tomo_scene::Visibility::Ready,
+                },
+                &options,
+                &mut style,
+            );
+        }
         let (scene, snapshot) = match &self.editor.game {
             Some(game) => (game.scene(), game.snapshot()),
             None => (
@@ -363,6 +424,8 @@ fn run(args: &[String]) -> Result<(), Problem> {
     let events =
         EventLoop::new().map_err(|e| Problem::new("WINDOW", "/event_loop", e.to_string()))?;
     let mut app = App {
+        audio: None,
+        audio_tried: false,
         editor: Editor::new(file)?,
         ui: EditorUi::default(),
         ctx: egui::Context::default(),

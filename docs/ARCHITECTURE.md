@@ -30,10 +30,10 @@ runtime/scene/physics에서 renderer로 향하는 의존성은 없다.
 담당한다. 두 crate의 전이 의존성은 CPU 코어/serialization으로 제한한다. `tools/tomo-play`와
 `tools/tomo-editor`가 이들을 renderer/OS 입력과 연결한다. 에디터의 Play world는 문서와 별도다.
 프로젝트 저장의 revision·파일 충돌·복구 범위는 EDITOR.md를 따른다.
-Project v2는 Logic v1을 포함하며, v1 문서는 엄격한 구형 검증 후 메모리에서 이행한다.
+Project v3는 Logic v1/Content v1, 여러 scene/prefab을 포함하며 v1/v2는 엄격한 구형 검증 후 이행한다.
 `tomo-game`의 제한된 이벤트/조건/동작 실행기는 GPU·외부 코드 없이 동작한다.
 Runtime이 실제 contact event를 scene ID로 변환하고 게임 계층이 tick별로 합쳐 규칙에 전달한다.
-물리 전/후 단계, 순서, Once, 게임 fail-stop과 규칙 예산은 LOGIC.md를 따른다. 물리 없는 색/HUD는 `FrameStyle`로 분리했으며 일반 visual entity/ECS는 후속이다.
+물리 전/후 단계, 순서, Once, 게임 fail-stop과 규칙 예산은 LOGIC.md를 따른다. 물리 없는 색/HUD는 `FrameStyle`로 분리했으며 Content v1의 일반 visual entity/계층은 구현했고 범용 ECS는 후속이다.
 `tomo-assets`: GLB·텍스처 가져오기/검증·버전 있는 변환 캐시.
 애니메이션·캐릭터는 책임이 확인될 때 별도 crate로 추출한다. 처음부터 빈 crate를 만들지 않는다.
 플랫폼 어댑터는 창·입력·오디오·저장·수명주기·패키징을 담당한다. 콘솔 코드는 SDK 허가와
@@ -64,7 +64,7 @@ fixed_dt, tick 수, 최종 body 위치·회전·속도·sleep 상태와 검사 �
 변경한다. tool용 `run`은 누적 3600 tick/body-squared 예산을 그대로 유지한다. desktop은
 한 프레임 최대 8 tick을 수행하고, 별도 replay 도구는 파일/입력 tick 예산을 검사한다.
 이 보고는 정확한 빌드 바이너리 해시/컴파일러/lockfile을 포함하는 최종 provenance 형식의
-전부가 아니다. 장기 작업 journal·캡처·빌드 provenance는 별도 단계로 남긴다.
+전부가 아니다. 문서/소스 journal과 패키지 파일 해시·빌드 provenance는 제작 v3에 추가했다. AUTHORING.md를 따른다.
 
 최종 체크는 위치 범위 및 선형 속도 상한부터 시작한다. 이를 충돌체 관통/스킨 품질/경로
 도달 등 모든 자동 품질 검사의 구현으로 간주하지 않는다.
@@ -109,3 +109,10 @@ API 키·서명 키·콘솔 SDK는 저장소 및 배포 게임에 넣지 않는�
 기술 근거: serde의 deny_unknown_fields (https://serde.rs/container-attrs.html),
 serde_json (https://docs.rs/serde_json), wgpu (https://wgpu.rs/).
 플랫폼 지원 증거는 라이브러리 문서와 별개로 RENDERING.md 및 실제 GPU 검사 결과를 따른다.
+
+## 제작 v3 경계
+
+Content의 entity/transform/camera/HUD/sound는 CPU 데이터다. game은 규칙/체크포인트/SDK,
+project는 scene 전환·prefab·저장·journal을 담당한다. render의 선택적 CPAL adapter가 실제
+오디오를 출력하며 play/editor가 호출한다. Android 엔트리 export만 소유자가 승인한 예외로
+deny(unsafe_code)와 단일 unsafe(no_mangle)를 사용한다. physics에는 변경·의존성이 없다.

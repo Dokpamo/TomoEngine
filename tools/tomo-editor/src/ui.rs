@@ -39,6 +39,7 @@ pub struct EditorUi {
     drag: Option<Drag>,
     filter: String,
     logic: crate::logic_ui::LogicUi,
+    studio: crate::studio_ui::StudioUi,
 }
 impl Default for EditorUi {
     fn default() -> Self {
@@ -56,6 +57,7 @@ impl Default for EditorUi {
             drag: None,
             filter: String::new(),
             logic: Default::default(),
+            studio: Default::default(),
         }
     }
 }
@@ -103,8 +105,14 @@ impl EditorUi {
     }
     pub fn style(&self, editor: &Editor) -> FrameStyle {
         let mut style = FrameStyle::default();
-        for body in &editor.document.project().scene.bodies {
-            let rules = &editor.document.project().game;
+        let (scene, rules) = editor.game.as_ref().map_or(
+            (
+                &editor.document.project().scene,
+                &editor.document.project().game,
+            ),
+            |g| (g.scene(), g.rules()),
+        );
+        for body in &scene.bodies {
             let color = if editor.game.is_none() && editor.selected.as_deref() == Some(&body.id) {
                 [0.2, 0.95, 0.9]
             } else if body.id == rules.player {
@@ -123,7 +131,7 @@ impl EditorUi {
         style
     }
     pub fn blocked(&self) -> bool {
-        self.file_dialog.is_some() || self.close_requested || self.logic.open
+        self.file_dialog.is_some() || self.close_requested || self.logic.open || self.studio.open
     }
     fn file(&mut self, action: FileAction, editor: &Editor) {
         let path = editor
@@ -180,11 +188,11 @@ impl EditorUi {
         }
     }
     pub fn show(&mut self, ctx: &Context, editor: &mut Editor) {
-        if self.close_requested && self.logic.open {
+        if self.close_requested && (self.logic.open || self.studio.open) {
             self.close_requested = false;
             editor.report(
                 Ok(()),
-                "Finish or discard the game rules draft before closing the editor.",
+                "Finish or discard the open draft before closing the editor.",
             );
         }
         if ctx.input(|i| i.pointer.primary_pressed()) && editor.game.is_none() && !self.blocked() {
@@ -259,6 +267,13 @@ impl EditorUi {
                     editor.document.end_gesture();
                     self.logic.open(editor);
                 }
+                if ui
+                    .add_enabled(editing && !self.blocked(), egui::Button::new("Studio"))
+                    .clicked()
+                {
+                    editor.document.end_gesture();
+                    self.studio.open(editor);
+                }
                 if editing {
                     if ui
                         .add_enabled(
@@ -288,6 +303,19 @@ impl EditorUi {
                         editor.stop();
                         editor.report(Ok(()), "Preview stopped. Edit scene restored.");
                     }
+                    ui.menu_button("Game", |ui| {
+                        for (label, action) in [
+                            ("Save progress", tomo_scene::UiAction::Save),
+                            ("Load progress", tomo_scene::UiAction::Load),
+                            ("Next scene", tomo_scene::UiAction::NextScene),
+                        ] {
+                            if ui.button(label).clicked() {
+                                let r = editor.game_action(action);
+                                editor.report(r, label);
+                                ui.close();
+                            }
+                        }
+                    });
                     if let Some(game) = &editor.game {
                         ui.label(format!(
                             "{:?}   {:.2}s   Score {}",
@@ -412,7 +440,7 @@ impl EditorUi {
                     });
                     ui.small("The player is dynamic and solid. The goal is a static, unrotated sensor box large enough to contain the player.");
                 });
-                ui.add_space(16.);ui.small(format!("Project v2 / revision {}",editor.document.project().revision));
+                ui.add_space(16.);ui.small(format!("Project v3 / revision {}",editor.document.project().revision));
                 if let Some(file)=&editor.file {ui.small(file.path().display().to_string());} else {ui.small("Unsaved project");}
             });
         });
@@ -440,6 +468,8 @@ impl EditorUi {
         }
         self.dialogs(ctx, editor);
         self.logic.show(ctx, editor);
+        let camera = self.options().camera;
+        self.studio.show(ctx, editor, &camera);
     }
     fn inspector(&mut self, ui: &mut egui::Ui, editor: &mut Editor) {
         let Some(id) = editor.selected.clone() else {
@@ -580,6 +610,26 @@ impl EditorUi {
         }
     }
     fn interact(&mut self, ctx: &Context, editor: &mut Editor, response: &egui::Response) {
+        if let Some(game) = &editor.game {
+            if response.clicked() {
+                if let Some(pos) = response.interact_pointer_pos() {
+                    let point = [
+                        (pos.x - self.viewport.min.x) / self.viewport.width(),
+                        (pos.y - self.viewport.min.y) / self.viewport.height(),
+                    ];
+                    if let Some(action) = tomo_render::hud_action(
+                        game.content(),
+                        crate::hud_state(game, editor.paused),
+                        point,
+                    ) {
+                        let r = editor.game_action(action);
+                        editor.report(r, "Game UI action applied.");
+                        return;
+                    }
+                }
+            }
+        }
+
         if response.dragged_by(egui::PointerButton::Secondary) {
             let d = response.drag_delta();
             self.yaw -= d.x * 0.008;
@@ -845,7 +895,7 @@ fn vector(
     });
     changed
 }
-fn to_euler([x, y, z, w]: [f32; 4]) -> [f32; 3] {
+pub(crate) fn to_euler([x, y, z, w]: [f32; 4]) -> [f32; 3] {
     [
         (2. * (w * x + y * z)).atan2(1. - 2. * (x * x + y * y)),
         (2. * (w * y - z * x)).clamp(-1., 1.).asin(),
@@ -853,7 +903,7 @@ fn to_euler([x, y, z, w]: [f32; 4]) -> [f32; 3] {
     ]
     .map(f32::to_degrees)
 }
-fn from_euler(angles: [f32; 3]) -> [f32; 4] {
+pub(crate) fn from_euler(angles: [f32; 3]) -> [f32; 4] {
     let [x, y, z] = angles.map(|a| a.to_radians() / 2.);
     let (sx, cx) = x.sin_cos();
     let (sy, cy) = y.sin_cos();

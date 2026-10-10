@@ -1,8 +1,12 @@
+> 제작 v3 업데이트: 현재 프로젝트는 v3로 저장하며 v1/v2를 읽습니다. 일반 객체·카메라·장면·
+> 프리팹·UI·효과음·진행 저장·Rust SDK·AI 편집 사용법은 [AUTHORING.md](AUTHORING.md),
+> 패키징과 플랫폼 검증은 [PLATFORMS.md](PLATFORMS.md)를 참고하세요. 아래 기존 v1/v2 설명은 해당 형식/기능의 계약입니다.
+
 # 에디터에서 게임 규칙 만들기
 
 에디터 상단 **Logic**에서 이벤트(WHEN), 모든 조건(IF), 순서 있는 동작(DO)을 조합한다.
 기본 이동과 목적지 승리도 같은 규칙으로 표현하므로 수정·비활성화·삭제할 수 있다.
-일반 소스 코드, Rust/스크립트 SDK, 노드 그래프, 임의 함수 실행은 아직 지원하지 않는다.
+이 창은 선언적 규칙을 편집한다. 컴파일하는 Rust SDK는 AUTHORING.md를 따른다. 노드 그래프/임의 함수 eval은 없다.
 
 ## 처음 사용하기
 
@@ -75,10 +79,10 @@ rollback하지 않으며 재시작 전까지 더 진행하지 않는다. 문서 
 
 ## 형식·호환성·한도
 
-- Project v2의 `game.logic`에 Logic v1을 필수로 저장한다. Scene은 v1 그대로다.
-- 기존 Project v1은 엄격한 구형 필드 검증 후 메모리에서 v2로 변환한다. player/goal/speed와
+- Project v3의 `game.logic`에 Logic v1을 필수로 저장한다. Scene은 v1 그대로다.
+- 기존 Project v1/v2는 엄격한 구형 필드 검증 후 메모리에서 v3로 변환한다. player/goal/speed와
   revision을 유지하고 이동·목적지 규칙 2개를 만든다. Open/validate는 파일을 쓰지 않으며,
-  Save할 때 v2로 저장한다. 구형 바이너리는 새 v2 파일을 읽을 수 없다.
+  Save할 때 v3로 저장한다. 구형 바이너리는 새 v3 파일을 읽을 수 없다.
 - 최대 64 rules, 각 8 conditions와 1..8 actions, 실행 기록 최근 32개, 파일 전체 1 MiB.
   빈 규칙 목록도 유효하며 그 경우 물리만 진행한다. 프로그램에 루프·재귀·외부 호출은 없다.
 - ID는 고유한 ASCII 1..64자, 이름은 제어 문자 없는 UTF-8 1..128 bytes다.
@@ -91,7 +95,7 @@ rollback하지 않으며 재시작 전까지 더 진행하지 않는다. 문서 
   1024 segment, body² × 요청 ticks ≤ 5,000,000과 별도로
   `(규칙 수 + 조건 수 + 동작 수) × 요청 ticks ≤ 5,000,000`을 검사한다.
 
-구조 스키마는 `schemas/project-v2.schema.json`, `logic-v1.schema.json`, `replay-v2.schema.json`.
+구조 스키마는 `schemas/project-v3.schema.json`, `logic-v1.schema.json`, `replay-v2.schema.json`.
 참조·유한 수치·UTF-8 바이트·순서·실행 예산의 권위 있는 검사는 Rust 검증기다.
 replay의 `expect_win: false`는 미승리 상태 전체를 허용한다. 정확한 Lost/점수 판정은 JSON의
 `status`/`score`를 검사한다. `rule_events`는 최근 32회라 전체 영속 trace/journal이 아니다.

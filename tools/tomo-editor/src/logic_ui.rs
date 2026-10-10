@@ -19,7 +19,10 @@ pub(crate) struct LogicUi {
 impl LogicUi {
     pub fn open(&mut self, editor: &Editor) {
         self.open = true;
-        self.draft = Some(editor.document.project().clone());
+        self.draft = Some(editor.game.as_ref().map_or_else(
+            || editor.document.project().clone(),
+            |game| game.project().clone(),
+        ));
         self.selected = 0;
         self.error.clear();
     }

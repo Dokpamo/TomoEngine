@@ -10,8 +10,10 @@ publish = false
 [features]
 default = []
 editor = ["dep:egui"]
+audio = ["dep:cpal"]
 
 [dependencies]
+cpal = { version = "=0.15.3", optional = true }
 egui = { version = "=0.32.3", optional = true }
 tomo-scene = { path = "../tomo-scene" }
 tomo-runtime = { path = "../tomo-runtime" }

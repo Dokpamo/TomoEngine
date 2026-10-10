@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 #![forbid(unsafe_code)]
-mod desktop;
+use tomo_play::desktop;
 
 use serde_json::json;
 use std::{
@@ -28,13 +28,8 @@ fn read_replay(path: &str) -> Result<Replay, Problem> {
 }
 
 fn capture(game: &Game, path: &str) -> Result<serde_json::Value, Problem> {
-    let options = view::options(1120, 760, false);
-    let image = tomo_render::capture_styled(
-        game.scene(),
-        game.snapshot(),
-        &options,
-        &view::style(game, &options, false),
-    )?;
+    let (options, style) = view::frame(game, 1120, 760, false, false)?;
+    let image = tomo_render::capture_styled(game.scene(), game.snapshot(), &options, &style)?;
     let bytes = image.png()?;
     let mut file = OpenOptions::new()
         .write(true)
@@ -50,22 +45,63 @@ fn capture(game: &Game, path: &str) -> Result<serde_json::Value, Problem> {
 }
 
 fn execute(args: &[String]) -> Result<u8, Problem> {
-    let (game, args) = if let [flag, directory, tail @ ..] = args {
-        if flag == "--project" {
-            (
-                tomo_project::ProjectFile::open(directory)?
-                    .project()
-                    .game()?,
-                tail,
-            )
+    let bundled = std::env::current_exe()
+        .ok()
+        .and_then(|exe| exe.parent().map(|p| p.to_owned()))
+        .and_then(|p| {
+            [p.join("game"), p.join("../Resources/game")]
+                .into_iter()
+                .find(|p| p.join(tomo_project::PROJECT_FILE).is_file())
+        });
+    let default_project = || -> Result<tomo_project::Project, Problem> {
+        match &bundled {
+            Some(path) => Ok(tomo_project::ProjectFile::open(path)?.project().clone()),
+            None => tomo_project::Project::template("Box Run"),
+        }
+    };
+    let default_save = || -> std::path::PathBuf {
+        if bundled.is_none() {
+            return "progress.tomo.json".into();
+        }
+        let base = if cfg!(target_os = "windows") {
+            std::env::var_os("LOCALAPPDATA").map(std::path::PathBuf::from)
         } else {
-            (Game::new()?, args)
+            std::env::var_os("HOME")
+                .map(std::path::PathBuf::from)
+                .map(|p| {
+                    p.join(if cfg!(target_os = "ios") {
+                        "Documents"
+                    } else if cfg!(target_os = "macos") {
+                        "Library/Application Support"
+                    } else {
+                        ".local/share"
+                    })
+                })
+        };
+        use std::hash::{Hash, Hasher};
+        let mut hash = std::collections::hash_map::DefaultHasher::new();
+        if let Ok(p) = default_project() {
+            p.name.hash(&mut hash);
+        }
+        base.unwrap_or_else(|| ".".into())
+            .join("TomoEngine")
+            .join(format!("{:016x}", hash.finish()))
+            .join("progress.tomo.json")
+    };
+    let (project, args, save_path) = if let [flag, directory, tail @ ..] = args {
+        if flag == "--project" {
+            let file = tomo_project::ProjectFile::open(directory)?;
+            let save = file.path().with_file_name("progress.tomo.json");
+            (file.project().clone(), tail, save)
+        } else {
+            (default_project()?, args, default_save())
         }
     } else {
-        (Game::new()?, args)
+        (default_project()?, args, default_save())
     };
+    let game = tomo_project::Session::new(project)?;
     match args {
-        [] => desktop::run(game, None),
+        [] => desktop::run(game, None, save_path),
         [flag] if flag == "--help" => {
             println!(
                 "{}",
@@ -76,7 +112,7 @@ fn execute(args: &[String]) -> Result<u8, Problem> {
             );
             Ok(0)
         }
-        [flag] if flag == "--smoke-test" => desktop::run(game, Some(120)),
+        [flag] if flag == "--smoke-test" => desktop::run(game, Some(120), save_path),
         [flag, path] if flag == "--capture" => {
             println!(
                 "{}",

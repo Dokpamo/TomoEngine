@@ -24,6 +24,9 @@ Use ordinary commits/pushes and preserve remote history; do not force-push.
   capabilities separately. Headless execution is not rendering or a complete game.
 - Project-authored Rust uses forbid(unsafe_code). Serialization and optional renderer
   dependencies are scoped and lockfile-pinned; their internals are not claimed safe-only.
+  Owner-approved exception: the Android entry crate uses deny(unsafe_code), allowing
+  unsafe(no_mangle) only on android_main, as required by android-activity.
+  No unsafe blocks, raw-pointer operations or physics FFI are authorized.
 - GPU/OS integration belongs only to tomo-render and render-enabled tools. Read
   docs/RENDERING.md for the pinned backend/MSRV policy and explicit GPU test commands.
 - Add external/native dependencies only with a documented purpose and policy review.

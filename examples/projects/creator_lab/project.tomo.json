@@ -1,0 +1,1691 @@
+{
+  "schema_version": 3,
+  "revision": 0,
+  "name": "Creator Lab",
+  "scene": {
+    "schema_version": 1,
+    "revision": 0,
+    "name": "Creator Lab",
+    "gravity": [
+      0,
+      -9.81,
+      0
+    ],
+    "fixed_dt": 0.016666666666666666,
+    "bodies": [
+      {
+        "id": "floor",
+        "motion": "static",
+        "shape": {
+          "type": "box",
+          "half_extents": [
+            7.4,
+            0.4,
+            6.4
+          ]
+        },
+        "position": [
+          0,
+          -0.4,
+          0
+        ]
+      },
+      {
+        "id": "west",
+        "motion": "static",
+        "shape": {
+          "type": "box",
+          "half_extents": [
+            0.15,
+            0.5,
+            6.2
+          ]
+        },
+        "position": [
+          -7.15,
+          0.5,
+          0
+        ]
+      },
+      {
+        "id": "east",
+        "motion": "static",
+        "shape": {
+          "type": "box",
+          "half_extents": [
+            0.15,
+            0.5,
+            6.2
+          ]
+        },
+        "position": [
+          7.15,
+          0.5,
+          0
+        ]
+      },
+      {
+        "id": "north",
+        "motion": "static",
+        "shape": {
+          "type": "box",
+          "half_extents": [
+            7.3,
+            0.5,
+            0.15
+          ]
+        },
+        "position": [
+          0,
+          0.5,
+          -6.15
+        ]
+      },
+      {
+        "id": "south",
+        "motion": "static",
+        "shape": {
+          "type": "box",
+          "half_extents": [
+            7.3,
+            0.5,
+            0.15
+          ]
+        },
+        "position": [
+          0,
+          0.5,
+          6.15
+        ]
+      },
+      {
+        "id": "gate_a",
+        "motion": "static",
+        "shape": {
+          "type": "box",
+          "half_extents": [
+            5,
+            0.65,
+            0.24
+          ]
+        },
+        "position": [
+          -2,
+          0.65,
+          1
+        ]
+      },
+      {
+        "id": "gate_b",
+        "motion": "static",
+        "shape": {
+          "type": "box",
+          "half_extents": [
+            5,
+            0.65,
+            0.24
+          ]
+        },
+        "position": [
+          2,
+          0.65,
+          -1.5
+        ]
+      },
+      {
+        "id": "goal",
+        "motion": "static",
+        "shape": {
+          "type": "box",
+          "half_extents": [
+            1.2,
+            0.035,
+            1.2
+          ]
+        },
+        "position": [
+          5,
+          0.035,
+          -4
+        ],
+        "is_sensor": true
+      },
+      {
+        "id": "player",
+        "motion": "dynamic",
+        "shape": {
+          "type": "box",
+          "half_extents": [
+            0.42,
+            0.42,
+            0.42
+          ]
+        },
+        "position": [
+          -5,
+          0.44,
+          4
+        ],
+        "friction": 0.25,
+        "allow_sleep": false
+      }
+    ]
+  },
+  "game": {
+    "player": "player",
+    "goal": "goal",
+    "speed": 4,
+    "logic": {
+      "schema_version": 1,
+      "start": "first_input",
+      "rules": [
+        {
+          "id": "movement",
+          "name": "Move with WASD / arrows",
+          "enabled": true,
+          "once": false,
+          "trigger": {
+            "type": "every_tick"
+          },
+          "conditions": [],
+          "actions": [
+            {
+              "type": "move_player"
+            }
+          ]
+        },
+        {
+          "id": "space_jump",
+          "name": "Space gives an upward velocity",
+          "enabled": true,
+          "once": false,
+          "trigger": {
+            "type": "key_pressed",
+            "key": "action"
+          },
+          "conditions": [],
+          "actions": [
+            {
+              "type": "set_velocity",
+              "body": "player",
+              "linear": [
+                0,
+                6,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": "landing",
+          "name": "First floor contact gives one point",
+          "enabled": true,
+          "once": true,
+          "trigger": {
+            "type": "contact",
+            "body_a": "player",
+            "body_b": "floor",
+            "kind": "started"
+          },
+          "conditions": [],
+          "actions": [
+            {
+              "type": "add_score",
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "id": "finish",
+          "name": "Reach the goal with a point to win",
+          "enabled": true,
+          "once": true,
+          "trigger": {
+            "type": "goal_reached"
+          },
+          "conditions": [
+            {
+              "type": "score_at_least",
+              "value": 1
+            }
+          ],
+          "actions": [
+            {
+              "type": "win"
+            }
+          ]
+        },
+        {
+          "id": "timeout",
+          "name": "Finish within 30 seconds",
+          "enabled": true,
+          "once": true,
+          "trigger": {
+            "type": "timer",
+            "ticks": 1800,
+            "repeat": false
+          },
+          "conditions": [],
+          "actions": [
+            {
+              "type": "lose"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "scene_id": "courtyard",
+  "next_scene": "second_room",
+  "scenes": [
+    {
+      "id": "second_room",
+      "scene": {
+        "schema_version": 1,
+        "revision": 0,
+        "name": "Second Room",
+        "gravity": [
+          0,
+          -9.81,
+          0
+        ],
+        "fixed_dt": 0.016666666666666666,
+        "bodies": [
+          {
+            "id": "floor",
+            "motion": "static",
+            "shape": {
+              "type": "box",
+              "half_extents": [
+                7.4,
+                0.4,
+                6.4
+              ]
+            },
+            "position": [
+              0,
+              -0.4,
+              0
+            ]
+          },
+          {
+            "id": "west",
+            "motion": "static",
+            "shape": {
+              "type": "box",
+              "half_extents": [
+                0.15,
+                0.5,
+                6.2
+              ]
+            },
+            "position": [
+              -7.15,
+              0.5,
+              0
+            ]
+          },
+          {
+            "id": "east",
+            "motion": "static",
+            "shape": {
+              "type": "box",
+              "half_extents": [
+                0.15,
+                0.5,
+                6.2
+              ]
+            },
+            "position": [
+              7.15,
+              0.5,
+              0
+            ]
+          },
+          {
+            "id": "north",
+            "motion": "static",
+            "shape": {
+              "type": "box",
+              "half_extents": [
+                7.3,
+                0.5,
+                0.15
+              ]
+            },
+            "position": [
+              0,
+              0.5,
+              -6.15
+            ]
+          },
+          {
+            "id": "south",
+            "motion": "static",
+            "shape": {
+              "type": "box",
+              "half_extents": [
+                7.3,
+                0.5,
+                0.15
+              ]
+            },
+            "position": [
+              0,
+              0.5,
+              6.15
+            ]
+          },
+          {
+            "id": "gate_a",
+            "motion": "static",
+            "shape": {
+              "type": "box",
+              "half_extents": [
+                5,
+                0.65,
+                0.24
+              ]
+            },
+            "position": [
+              -2,
+              0.65,
+              1
+            ]
+          },
+          {
+            "id": "gate_b",
+            "motion": "static",
+            "shape": {
+              "type": "box",
+              "half_extents": [
+                5,
+                0.65,
+                0.24
+              ]
+            },
+            "position": [
+              2,
+              0.65,
+              -1.5
+            ]
+          },
+          {
+            "id": "goal",
+            "motion": "static",
+            "shape": {
+              "type": "box",
+              "half_extents": [
+                1.2,
+                0.035,
+                1.2
+              ]
+            },
+            "position": [
+              5,
+              0.035,
+              4
+            ],
+            "is_sensor": true
+          },
+          {
+            "id": "player",
+            "motion": "dynamic",
+            "shape": {
+              "type": "box",
+              "half_extents": [
+                0.42,
+                0.42,
+                0.42
+              ]
+            },
+            "position": [
+              -5,
+              0.44,
+              4
+            ],
+            "friction": 0.25,
+            "allow_sleep": false
+          }
+        ]
+      },
+      "game": {
+        "player": "player",
+        "goal": "goal",
+        "speed": 4,
+        "logic": {
+          "schema_version": 1,
+          "start": "first_input",
+          "rules": [
+            {
+              "id": "movement",
+              "name": "Move with WASD / arrows",
+              "enabled": true,
+              "once": false,
+              "trigger": {
+                "type": "every_tick"
+              },
+              "conditions": [],
+              "actions": [
+                {
+                  "type": "move_player"
+                }
+              ]
+            },
+            {
+              "id": "space_jump",
+              "name": "Space gives an upward velocity",
+              "enabled": true,
+              "once": false,
+              "trigger": {
+                "type": "key_pressed",
+                "key": "action"
+              },
+              "conditions": [],
+              "actions": [
+                {
+                  "type": "set_velocity",
+                  "body": "player",
+                  "linear": [
+                    0,
+                    6,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "landing",
+              "name": "First floor contact gives one point",
+              "enabled": true,
+              "once": true,
+              "trigger": {
+                "type": "contact",
+                "body_a": "player",
+                "body_b": "floor",
+                "kind": "started"
+              },
+              "conditions": [],
+              "actions": [
+                {
+                  "type": "add_score",
+                  "amount": 1
+                }
+              ]
+            },
+            {
+              "id": "finish",
+              "name": "Reach the goal with a point to win",
+              "enabled": true,
+              "once": true,
+              "trigger": {
+                "type": "goal_reached"
+              },
+              "conditions": [
+                {
+                  "type": "score_at_least",
+                  "value": 1
+                }
+              ],
+              "actions": [
+                {
+                  "type": "win"
+                }
+              ]
+            },
+            {
+              "id": "timeout",
+              "name": "Finish within 30 seconds",
+              "enabled": true,
+              "once": true,
+              "trigger": {
+                "type": "timer",
+                "ticks": 1800,
+                "repeat": false
+              },
+              "conditions": [],
+              "actions": [
+                {
+                  "type": "lose"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "content": {
+        "schema_version": 1,
+        "entities": [
+          {
+            "id": "beacon_0",
+            "name": "Floating beacon 1",
+            "parent": null,
+            "body": null,
+            "transform": {
+              "position": [
+                -8,
+                2,
+                -5
+              ],
+              "rotation": [
+                0,
+                0,
+                0,
+                1
+              ],
+              "scale": 1
+            },
+            "visual": {
+              "shape": {
+                "type": "box",
+                "half_extents": [
+                  0.4,
+                  1.0,
+                  0.4
+                ]
+              },
+              "color": [
+                0.06,
+                0.8,
+                0.6
+              ],
+              "visible": true
+            },
+            "spin_degrees_per_second": [
+              0,
+              30,
+              0
+            ],
+            "tags": [
+              "decoration"
+            ]
+          },
+          {
+            "id": "beacon_1",
+            "name": "Floating beacon 2",
+            "parent": null,
+            "body": null,
+            "transform": {
+              "position": [
+                8,
+                2,
+                -5
+              ],
+              "rotation": [
+                0,
+                0,
+                0,
+                1
+              ],
+              "scale": 1
+            },
+            "visual": {
+              "shape": {
+                "type": "box",
+                "half_extents": [
+                  0.4,
+                  1.0,
+                  0.4
+                ]
+              },
+              "color": [
+                0.06,
+                0.8,
+                0.6
+              ],
+              "visible": true
+            },
+            "spin_degrees_per_second": [
+              0,
+              30,
+              0
+            ],
+            "tags": [
+              "decoration"
+            ]
+          },
+          {
+            "id": "beacon_2",
+            "name": "Floating beacon 3",
+            "parent": null,
+            "body": null,
+            "transform": {
+              "position": [
+                -8,
+                2,
+                5
+              ],
+              "rotation": [
+                0,
+                0,
+                0,
+                1
+              ],
+              "scale": 1
+            },
+            "visual": {
+              "shape": {
+                "type": "box",
+                "half_extents": [
+                  0.4,
+                  1.0,
+                  0.4
+                ]
+              },
+              "color": [
+                0.06,
+                0.8,
+                0.6
+              ],
+              "visible": true
+            },
+            "spin_degrees_per_second": [
+              0,
+              30,
+              0
+            ],
+            "tags": [
+              "decoration"
+            ]
+          },
+          {
+            "id": "beacon_3",
+            "name": "Floating beacon 4",
+            "parent": null,
+            "body": null,
+            "transform": {
+              "position": [
+                8,
+                2,
+                5
+              ],
+              "rotation": [
+                0,
+                0,
+                0,
+                1
+              ],
+              "scale": 1
+            },
+            "visual": {
+              "shape": {
+                "type": "box",
+                "half_extents": [
+                  0.4,
+                  1.0,
+                  0.4
+                ]
+              },
+              "color": [
+                0.06,
+                0.8,
+                0.6
+              ],
+              "visible": true
+            },
+            "spin_degrees_per_second": [
+              0,
+              30,
+              0
+            ],
+            "tags": [
+              "decoration"
+            ]
+          }
+        ],
+        "cameras": [
+          {
+            "id": "main_camera",
+            "eye": [
+              0,
+              18,
+              12
+            ],
+            "target": [
+              0,
+              0,
+              0
+            ],
+            "up": [
+              0,
+              1,
+              0
+            ],
+            "vertical_fov_degrees": 46,
+            "near": 0.1,
+            "far": 200,
+            "follow": null
+          }
+        ],
+        "active_camera": "main_camera",
+        "default_hud": false,
+        "ui": [
+          {
+            "id": "title",
+            "kind": {
+              "type": "label"
+            },
+            "text": "SECOND ROOM",
+            "position": [
+              0.03,
+              0.03
+            ],
+            "size": [
+              0.45,
+              0.06
+            ],
+            "color": [
+              0.85,
+              0.97,
+              0.94
+            ],
+            "background": [
+              0.015,
+              0.035,
+              0.045
+            ],
+            "visibility": "always"
+          },
+          {
+            "id": "score",
+            "kind": {
+              "type": "score"
+            },
+            "text": "SCORE",
+            "position": [
+              0.62,
+              0.03
+            ],
+            "size": [
+              0.15,
+              0.06
+            ],
+            "color": [
+              0.85,
+              0.97,
+              0.94
+            ],
+            "background": [
+              0.015,
+              0.035,
+              0.045
+            ],
+            "visibility": "always"
+          },
+          {
+            "id": "timer",
+            "kind": {
+              "type": "timer"
+            },
+            "text": "TIME",
+            "position": [
+              0.8,
+              0.03
+            ],
+            "size": [
+              0.17,
+              0.06
+            ],
+            "color": [
+              0.85,
+              0.97,
+              0.94
+            ],
+            "background": [
+              0.015,
+              0.035,
+              0.045
+            ],
+            "visibility": "always"
+          },
+          {
+            "id": "status",
+            "kind": {
+              "type": "status"
+            },
+            "text": "",
+            "position": [
+              0.35,
+              0.11
+            ],
+            "size": [
+              0.3,
+              0.04
+            ],
+            "color": [
+              0.85,
+              0.97,
+              0.94
+            ],
+            "background": [
+              0.015,
+              0.035,
+              0.045
+            ],
+            "visibility": "always"
+          },
+          {
+            "id": "instructions",
+            "kind": {
+              "type": "label"
+            },
+            "text": "WASD MOVE / SPACE JUMP",
+            "position": [
+              0.28,
+              0.18
+            ],
+            "size": [
+              0.44,
+              0.045
+            ],
+            "color": [
+              0.85,
+              0.97,
+              0.94
+            ],
+            "background": [
+              0.015,
+              0.035,
+              0.045
+            ],
+            "visibility": "always"
+          },
+          {
+            "id": "restart",
+            "kind": {
+              "type": "button",
+              "action": "restart"
+            },
+            "text": "RESTART",
+            "position": [
+              0.035,
+              0.9
+            ],
+            "size": [
+              0.13,
+              0.065
+            ],
+            "color": [
+              0.1,
+              0.94,
+              0.67
+            ],
+            "background": [
+              0.025,
+              0.065,
+              0.08
+            ],
+            "visibility": "always"
+          },
+          {
+            "id": "pause",
+            "kind": {
+              "type": "button",
+              "action": "pause"
+            },
+            "text": "PAUSE",
+            "position": [
+              0.195,
+              0.9
+            ],
+            "size": [
+              0.13,
+              0.065
+            ],
+            "color": [
+              0.1,
+              0.94,
+              0.67
+            ],
+            "background": [
+              0.025,
+              0.065,
+              0.08
+            ],
+            "visibility": "always"
+          },
+          {
+            "id": "resume",
+            "kind": {
+              "type": "button",
+              "action": "resume"
+            },
+            "text": "PLAY",
+            "position": [
+              0.355,
+              0.9
+            ],
+            "size": [
+              0.13,
+              0.065
+            ],
+            "color": [
+              0.1,
+              0.94,
+              0.67
+            ],
+            "background": [
+              0.025,
+              0.065,
+              0.08
+            ],
+            "visibility": "always"
+          },
+          {
+            "id": "save",
+            "kind": {
+              "type": "button",
+              "action": "save"
+            },
+            "text": "SAVE",
+            "position": [
+              0.515,
+              0.9
+            ],
+            "size": [
+              0.13,
+              0.065
+            ],
+            "color": [
+              0.1,
+              0.94,
+              0.67
+            ],
+            "background": [
+              0.025,
+              0.065,
+              0.08
+            ],
+            "visibility": "always"
+          },
+          {
+            "id": "load",
+            "kind": {
+              "type": "button",
+              "action": "load"
+            },
+            "text": "LOAD",
+            "position": [
+              0.675,
+              0.9
+            ],
+            "size": [
+              0.13,
+              0.065
+            ],
+            "color": [
+              0.1,
+              0.94,
+              0.67
+            ],
+            "background": [
+              0.025,
+              0.065,
+              0.08
+            ],
+            "visibility": "always"
+          },
+          {
+            "id": "next_scene",
+            "kind": {
+              "type": "button",
+              "action": "next_scene"
+            },
+            "text": "NEXT",
+            "position": [
+              0.8350000000000001,
+              0.9
+            ],
+            "size": [
+              0.13,
+              0.065
+            ],
+            "color": [
+              0.1,
+              0.94,
+              0.67
+            ],
+            "background": [
+              0.025,
+              0.065,
+              0.08
+            ],
+            "visibility": "always"
+          }
+        ],
+        "sounds": [
+          {
+            "id": "jump",
+            "trigger": {
+              "type": "rule",
+              "id": "space_jump"
+            },
+            "frequency": 600,
+            "seconds": 0.12,
+            "volume": 0.2
+          },
+          {
+            "id": "point",
+            "trigger": {
+              "type": "score"
+            },
+            "frequency": 880,
+            "seconds": 0.13,
+            "volume": 0.2
+          },
+          {
+            "id": "win",
+            "trigger": {
+              "type": "won"
+            },
+            "frequency": 1100,
+            "seconds": 0.5,
+            "volume": 0.2
+          },
+          {
+            "id": "lose",
+            "trigger": {
+              "type": "lost"
+            },
+            "frequency": 180,
+            "seconds": 0.5,
+            "volume": 0.2
+          }
+        ]
+      },
+      "next_scene": "courtyard"
+    }
+  ],
+  "prefabs": [
+    {
+      "id": "beacon",
+      "entities": [
+        {
+          "id": "beacon_0",
+          "name": "Floating beacon 1",
+          "parent": null,
+          "body": null,
+          "transform": {
+            "position": [
+              -8,
+              2,
+              -5
+            ],
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": 1
+          },
+          "visual": {
+            "shape": {
+              "type": "box",
+              "half_extents": [
+                0.4,
+                1.0,
+                0.4
+              ]
+            },
+            "color": [
+              0.06,
+              0.8,
+              0.6
+            ],
+            "visible": true
+          },
+          "spin_degrees_per_second": [
+            0,
+            30,
+            0
+          ],
+          "tags": [
+            "decoration"
+          ]
+        }
+      ],
+      "bodies": []
+    }
+  ],
+  "content": {
+    "schema_version": 1,
+    "entities": [
+      {
+        "id": "beacon_0",
+        "name": "Floating beacon 1",
+        "parent": null,
+        "body": null,
+        "transform": {
+          "position": [
+            -8,
+            2,
+            -5
+          ],
+          "rotation": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "scale": 1
+        },
+        "visual": {
+          "shape": {
+            "type": "box",
+            "half_extents": [
+              0.4,
+              1.0,
+              0.4
+            ]
+          },
+          "color": [
+            0.06,
+            0.8,
+            0.6
+          ],
+          "visible": true
+        },
+        "spin_degrees_per_second": [
+          0,
+          30,
+          0
+        ],
+        "tags": [
+          "decoration"
+        ]
+      },
+      {
+        "id": "beacon_1",
+        "name": "Floating beacon 2",
+        "parent": null,
+        "body": null,
+        "transform": {
+          "position": [
+            8,
+            2,
+            -5
+          ],
+          "rotation": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "scale": 1
+        },
+        "visual": {
+          "shape": {
+            "type": "box",
+            "half_extents": [
+              0.4,
+              1.0,
+              0.4
+            ]
+          },
+          "color": [
+            0.06,
+            0.8,
+            0.6
+          ],
+          "visible": true
+        },
+        "spin_degrees_per_second": [
+          0,
+          30,
+          0
+        ],
+        "tags": [
+          "decoration"
+        ]
+      },
+      {
+        "id": "beacon_2",
+        "name": "Floating beacon 3",
+        "parent": null,
+        "body": null,
+        "transform": {
+          "position": [
+            -8,
+            2,
+            5
+          ],
+          "rotation": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "scale": 1
+        },
+        "visual": {
+          "shape": {
+            "type": "box",
+            "half_extents": [
+              0.4,
+              1.0,
+              0.4
+            ]
+          },
+          "color": [
+            0.06,
+            0.8,
+            0.6
+          ],
+          "visible": true
+        },
+        "spin_degrees_per_second": [
+          0,
+          30,
+          0
+        ],
+        "tags": [
+          "decoration"
+        ]
+      },
+      {
+        "id": "beacon_3",
+        "name": "Floating beacon 4",
+        "parent": null,
+        "body": null,
+        "transform": {
+          "position": [
+            8,
+            2,
+            5
+          ],
+          "rotation": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "scale": 1
+        },
+        "visual": {
+          "shape": {
+            "type": "box",
+            "half_extents": [
+              0.4,
+              1.0,
+              0.4
+            ]
+          },
+          "color": [
+            0.06,
+            0.8,
+            0.6
+          ],
+          "visible": true
+        },
+        "spin_degrees_per_second": [
+          0,
+          30,
+          0
+        ],
+        "tags": [
+          "decoration"
+        ]
+      }
+    ],
+    "cameras": [
+      {
+        "id": "main_camera",
+        "eye": [
+          0,
+          18,
+          12
+        ],
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "up": [
+          0,
+          1,
+          0
+        ],
+        "vertical_fov_degrees": 46,
+        "near": 0.1,
+        "far": 200,
+        "follow": null
+      }
+    ],
+    "active_camera": "main_camera",
+    "default_hud": false,
+    "ui": [
+      {
+        "id": "title",
+        "kind": {
+          "type": "label"
+        },
+        "text": "CREATOR LAB",
+        "position": [
+          0.03,
+          0.03
+        ],
+        "size": [
+          0.45,
+          0.06
+        ],
+        "color": [
+          0.85,
+          0.97,
+          0.94
+        ],
+        "background": [
+          0.015,
+          0.035,
+          0.045
+        ],
+        "visibility": "always"
+      },
+      {
+        "id": "score",
+        "kind": {
+          "type": "score"
+        },
+        "text": "SCORE",
+        "position": [
+          0.62,
+          0.03
+        ],
+        "size": [
+          0.15,
+          0.06
+        ],
+        "color": [
+          0.85,
+          0.97,
+          0.94
+        ],
+        "background": [
+          0.015,
+          0.035,
+          0.045
+        ],
+        "visibility": "always"
+      },
+      {
+        "id": "timer",
+        "kind": {
+          "type": "timer"
+        },
+        "text": "TIME",
+        "position": [
+          0.8,
+          0.03
+        ],
+        "size": [
+          0.17,
+          0.06
+        ],
+        "color": [
+          0.85,
+          0.97,
+          0.94
+        ],
+        "background": [
+          0.015,
+          0.035,
+          0.045
+        ],
+        "visibility": "always"
+      },
+      {
+        "id": "status",
+        "kind": {
+          "type": "status"
+        },
+        "text": "",
+        "position": [
+          0.35,
+          0.11
+        ],
+        "size": [
+          0.3,
+          0.04
+        ],
+        "color": [
+          0.85,
+          0.97,
+          0.94
+        ],
+        "background": [
+          0.015,
+          0.035,
+          0.045
+        ],
+        "visibility": "always"
+      },
+      {
+        "id": "instructions",
+        "kind": {
+          "type": "label"
+        },
+        "text": "WASD MOVE / SPACE JUMP",
+        "position": [
+          0.28,
+          0.18
+        ],
+        "size": [
+          0.44,
+          0.045
+        ],
+        "color": [
+          0.85,
+          0.97,
+          0.94
+        ],
+        "background": [
+          0.015,
+          0.035,
+          0.045
+        ],
+        "visibility": "always"
+      },
+      {
+        "id": "restart",
+        "kind": {
+          "type": "button",
+          "action": "restart"
+        },
+        "text": "RESTART",
+        "position": [
+          0.035,
+          0.9
+        ],
+        "size": [
+          0.13,
+          0.065
+        ],
+        "color": [
+          0.1,
+          0.94,
+          0.67
+        ],
+        "background": [
+          0.025,
+          0.065,
+          0.08
+        ],
+        "visibility": "always"
+      },
+      {
+        "id": "pause",
+        "kind": {
+          "type": "button",
+          "action": "pause"
+        },
+        "text": "PAUSE",
+        "position": [
+          0.195,
+          0.9
+        ],
+        "size": [
+          0.13,
+          0.065
+        ],
+        "color": [
+          0.1,
+          0.94,
+          0.67
+        ],
+        "background": [
+          0.025,
+          0.065,
+          0.08
+        ],
+        "visibility": "always"
+      },
+      {
+        "id": "resume",
+        "kind": {
+          "type": "button",
+          "action": "resume"
+        },
+        "text": "PLAY",
+        "position": [
+          0.355,
+          0.9
+        ],
+        "size": [
+          0.13,
+          0.065
+        ],
+        "color": [
+          0.1,
+          0.94,
+          0.67
+        ],
+        "background": [
+          0.025,
+          0.065,
+          0.08
+        ],
+        "visibility": "always"
+      },
+      {
+        "id": "save",
+        "kind": {
+          "type": "button",
+          "action": "save"
+        },
+        "text": "SAVE",
+        "position": [
+          0.515,
+          0.9
+        ],
+        "size": [
+          0.13,
+          0.065
+        ],
+        "color": [
+          0.1,
+          0.94,
+          0.67
+        ],
+        "background": [
+          0.025,
+          0.065,
+          0.08
+        ],
+        "visibility": "always"
+      },
+      {
+        "id": "load",
+        "kind": {
+          "type": "button",
+          "action": "load"
+        },
+        "text": "LOAD",
+        "position": [
+          0.675,
+          0.9
+        ],
+        "size": [
+          0.13,
+          0.065
+        ],
+        "color": [
+          0.1,
+          0.94,
+          0.67
+        ],
+        "background": [
+          0.025,
+          0.065,
+          0.08
+        ],
+        "visibility": "always"
+      },
+      {
+        "id": "next_scene",
+        "kind": {
+          "type": "button",
+          "action": "next_scene"
+        },
+        "text": "NEXT",
+        "position": [
+          0.8350000000000001,
+          0.9
+        ],
+        "size": [
+          0.13,
+          0.065
+        ],
+        "color": [
+          0.1,
+          0.94,
+          0.67
+        ],
+        "background": [
+          0.025,
+          0.065,
+          0.08
+        ],
+        "visibility": "always"
+      }
+    ],
+    "sounds": [
+      {
+        "id": "jump",
+        "trigger": {
+          "type": "rule",
+          "id": "space_jump"
+        },
+        "frequency": 600,
+        "seconds": 0.12,
+        "volume": 0.2
+      },
+      {
+        "id": "point",
+        "trigger": {
+          "type": "score"
+        },
+        "frequency": 880,
+        "seconds": 0.13,
+        "volume": 0.2
+      },
+      {
+        "id": "win",
+        "trigger": {
+          "type": "won"
+        },
+        "frequency": 1100,
+        "seconds": 0.5,
+        "volume": 0.2
+      },
+      {
+        "id": "lose",
+        "trigger": {
+          "type": "lost"
+        },
+        "frequency": 180,
+        "seconds": 0.5,
+        "volume": 0.2
+      }
+    ]
+  }
+}

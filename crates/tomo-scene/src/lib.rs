@@ -2,6 +2,9 @@
 //! Versioned scene data. No physics, renderer, filesystem or network dependency.
 #![forbid(unsafe_code)]
 
+mod content;
+pub use content::*;
+
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::fmt;

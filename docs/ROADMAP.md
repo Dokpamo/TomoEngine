@@ -11,9 +11,9 @@
 | M2E 에디터·프로젝트 | R/T | 실제 GUI로 편집·Play/Stop·저장 후 독립 실행 | 첫 목적지 게임 템플릿 구현, 문서/GUI 입력/Metal 검증; 범용 SDK 후속 |
 | M2L 게임 로직 편집 | R/T | 에디터에서 이벤트·조건·동작 작성, 저장/미리보기/독립 실행에서 동일 규칙 사용 | 선언적 규칙 v1 구현, 자동 검사·실제 Metal 창 검증; 범용 코드 SDK 후속 |
 | M3 에셋과 캐릭터 | R/A/T | 정적 GLB/PBR 검증 후 skeleton/skinning/blending, 실제 이동/충돌, 입력 재현 테스트 | 미구현 |
-| M4 실제 게임 제작 | R/A/T | Rust 게임 SDK, 게임 UI·오디오·저장, AI 장면/코드 수정, 작업 journal·재시도·rollback, 통합 게임 테스트 | M2L 선언적 로직은 선행 구현; 범용 SDK·나머지 범위 미구현 |
+| M4 실제 게임 제작 | R/A/T | Rust 게임 SDK, 게임 UI·오디오·저장, AI 장면/코드 수정, 작업 journal·재시도·rollback, 통합 게임 테스트 | 모델 불필요 제작 v3 구현: entity/카메라/다중 scene/prefab/SDK/HUD/합성음/선언적 저장/journal; 범위·한도는 AUTHORING.md |
 | M5 생성 서비스 | A/T | Tripo 작업/비용/라이선스/provenance 및 offline fallback, 생성 결과 검증·최적화 | 미구현 |
-| M6 5 OS 배포 | R/X/T | Windows/macOS/Linux/iOS/Android 실제 기기 실행·수명주기·입력·저장·패키징·성능 예산 | 미검증 |
+| M6 5 OS 배포 | R/X/T | Windows/macOS/Linux/iOS/Android 실제 기기 실행·수명주기·입력·저장·패키징·성능 예산 | desktop/iOS/Android 패키저와 모바일 호스트 구현; macOS와 iOS simulator 검사, Android APK 빌드. 전 OS 실기기 검증 미완료 |
 | M7 콘솔 | X | 개발자 승인/SDK/개발기기 확보 후 개별 백엔드·저장/입력/패키징·인증 | 외부 조건 대기, 미구현 |
 
 M6의 작은 smoke test는 M2부터 가능한 환경에 추가한다. 모든 PC 기능 완성 뒤 처음
@@ -43,18 +43,17 @@ build/runtime에 링크하지 않는다. 목표 원본 버전 변경은 별도 �
 - 기존 physics 테스트와 새 scene/runtime/CLI 테스트를 Debug/Release 및 default/FMA로 실행한다.
 - 최신 commit의 실제 CI를 확인한다. lockfile bootstrap과 개발용 임시 workflow는 제거한다.
 
-## 다음 실행 작업
+## 이번 소유자 요청과 남은 작업
 
-Box Run으로 desktop 입력·물리 이동·벽·목적지·승리·재시작·고정 입력 재현·GPU HUD를 연결했다.
-CLI 누적 예산과 게임 수명을 분리했고 색/HUD는 물리 scene 외부의 표현 데이터로 두었다.
-소유자 요청으로 GLB보다 에디터와 게임 제작 구조를 우선했다. M2E는 프로젝트 v1, 재사용
-게임 규칙, 실제 편집 창, 트랜잭션/Undo, 충돌 감지 저장과 Play/Stop을 연결한다. 구체적인
-구현·검증·미지원 범위는 EDITOR.md를 따른다. 소유자의 게임 로직 편집 요청은 M2E 확장과
-M4의 선행 범위인 M2L로 구체화했다. Project v2/Logic v1의 이벤트·조건·동작, 점수·종료,
-실제 접촉 이벤트, 규칙 편집/검증/Undo와 replay를 연결한다. 세부 계약은 LOGIC.md이며
-M4 전체나 임의 코드 실행 SDK의 완료를 뜻하지 않는다. 다음 제작 확장은 카메라/일반 entity와 visual
-분리, 여러 scene·prefab·게임 SDK다. 정적 GLB 가져오기·검증·렌더링은 보류된 후속 작업이다. Windows 실기기와 모바일의
-창/입력/수명주기 검증도 별도로 남는다. Box Run의 구체적 계약/테스트는 GAME.md를 따른다.
-P 작업의 다음 항목은 P1 원본 inventory/검증 fixture다. 렌더링 성공 때문에 이 항목을 닫지 않는다.
-긴 구현은 완료된 파일·테스트·미완료 항목을 PR에 남기고, 응답 종료 뒤 자동으로 계속 수행된다고
-약속하지 않는다. 작업 재개 시 브랜치 head와 변경 내용을 다시 읽는다.
+2026-10-10: **7번(Jolt 전체 직접 이식)과 외부 3D 모델이 필요한 작업을 모두 제외**하도록
+소유자가 범위를 지정했다. 따라서 P 전체 완성, M3 GLB/스키닝/캐릭터, M5 Tripo는 이번에 닫지 않는다.
+일반 객체/카메라, 다중 scene/prefab, Rust SDK, UI/합성음/선언적 저장, AI 문서/소스 편집과
+journal/rollback, 로컬 패키징을 구현했다. 사용법과 정확한 한도는 AUTHORING.md를 따른다.
+
+Android 시작점의 `unsafe(no_mangle)` 속성 한 줄은 소유자가 별도 승인했다.
+물리 정책이나 unsafe 메모리 접근에 대한 예외는 아니다. 나머지 authored Rust는 forbid를 유지한다.
+
+남은 검증/확장은 PLATFORMS.md의 실기기·서명·성능 검증, native SDK 자체 상태 영속화,
+노드 그래프/핫리로드, 다국어 게임 HUD, 파일 음원·공간 음향 등이다. 제작 v3를 모든 게임 장르와
+최종 M4/M6 전체 완료로 해석하지 않는다. 콘솔은 승인된 SDK와 기기 없이는 구현·검증할 수 없다.
+Jolt 원본 동등성은 PORTING.md와 이슈 #2에서 독립적으로 계속 추적한다.

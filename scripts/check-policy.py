@@ -7,10 +7,12 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 EXPECTED = {
+    "tomo-android": {"tomo-play", "winit"},
+    "tomo-sdk-demo": {"tomo-game", "tomo-project", "tomo-play", "tomo-scene", "serde_json"},
     "tomo-physics": set(),
     "tomo-scene": {"serde", "serde_json"},
     "tomo-runtime": {"serde", "tomo-scene", "tomo-physics"},
-    "tomo-render": {"serde", "serde_json", "tomo-scene", "tomo-runtime", "wgpu", "pollster", "png", "egui"},
+    "tomo-render": {"serde", "serde_json", "tomo-scene", "tomo-runtime", "wgpu", "pollster", "png", "egui", "cpal"},
     "tomo-game": {"serde", "serde_json", "tomo-scene", "tomo-runtime"},
     "tomo-project": {"serde", "serde_json", "tomo-scene", "tomo-runtime", "tomo-game"},
     "tomo-editor": {"serde_json", "tomo-project", "tomo-scene", "tomo-game", "tomo-render", "winit", "egui", "egui-winit"},
@@ -40,7 +42,11 @@ def main():
             raise ValueError(f"{name}: unreviewed dependency boundary: {actual}")
         directory = pathlib.Path(package["manifest_path"]).parent
         for target in package["targets"]:
-            if any(kind in ("lib", "bin") for kind in target["kind"]):
+            if name == "tomo-android":
+                source = pathlib.Path(target["src_path"]).read_text(encoding="utf-8")
+                if '#![deny(unsafe_code)]' not in source or source.count('#[unsafe(no_mangle)]') != 1 or source.count('#[allow(unsafe_code)]') != 1 or 'unsafe {' in source or 'extern ' in source:
+                    raise ValueError("Android entry exceeds the approved export-only exception")
+            elif any(kind in ("lib", "bin", "cdylib") for kind in target["kind"]):
                 if "#![forbid(unsafe_code)]" not in pathlib.Path(target["src_path"]).read_text(encoding="utf-8"):
                     raise ValueError(f"{name}: missing unsafe policy")
         for path in directory.rglob("*"):

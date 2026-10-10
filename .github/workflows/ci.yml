@@ -34,6 +34,9 @@ jobs:
           persist-credentials: false
       - name: Install Rust
         run: rustup toolchain install ${{ matrix.toolchain }} --profile minimal
+      - name: Install Linux audio headers
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
       - name: Fetch reviewed locked dependencies
         run: cargo +${{ matrix.toolchain }} fetch --locked
       - name: Default tests
@@ -57,6 +60,10 @@ jobs:
           cargo +${{ matrix.toolchain }} run -q -p tomo-cli --locked --offline -- project new target/ci-game --name "CI Game"
           cargo +${{ matrix.toolchain }} run -q -p tomo-cli --locked --offline -- project validate target/ci-game
           cargo +${{ matrix.toolchain }} run -q -p tomo-play --locked --offline -- --project target/ci-game --replay examples/replays/box_run_win.replay.json
+      - name: Compiled Rust SDK game acceptance
+        run: cargo +${{ matrix.toolchain }} run -q -p tomo-sdk-demo --locked --offline -- --headless
+      - name: Code edit transaction tests
+        run: python3 scripts/test-code-edit.py
       - name: Box Run fixed input acceptance
         run: cargo +${{ matrix.toolchain }} run -q -p tomo-play --locked --offline -- --replay examples/replays/box_run_win.replay.json
       - name: Authored logic project acceptance
@@ -71,6 +78,9 @@ jobs:
           persist-credentials: false
       - name: Install pinned quality tools
         run: rustup toolchain install 1.85.0 --profile minimal --component rustfmt --component clippy
+      - name: Install Linux audio headers
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
       - name: Fetch reviewed locked dependencies
         run: cargo +1.85.0 fetch --locked
       - name: Format
@@ -99,6 +109,9 @@ jobs:
           rustup toolchain install 1.85.0 --profile minimal
           sudo apt-get update
           sudo apt-get install -y mesa-vulkan-drivers xvfb libxkbcommon-x11-0
+      - name: Install Linux audio headers
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
       - name: Fetch reviewed locked dependencies
         run: cargo +1.85.0 fetch --locked
       - name: Actual Vulkan pixels and capture process
@@ -106,6 +119,7 @@ jobs:
           XDG_RUNTIME_DIR: /tmp
         run: |
           cargo +1.85.0 test -p tomo-render --locked --offline --test capture -- --ignored
+          cargo +1.85.0 test -p tomo-render --locked --offline --test content -- --ignored
           cargo +1.85.0 test -p tomo-cli --features render --locked --offline --test cli -- --ignored
           cargo +1.85.0 test -p tomo-play --locked --offline -- --ignored
       - name: Actual desktop surface, movement and resize
@@ -119,3 +133,20 @@ jobs:
           XDG_RUNTIME_DIR: /tmp
           WINIT_UNIX_BACKEND: x11
         run: xvfb-run -a cargo +1.85.0 run -p tomo-editor --locked --offline -- --smoke-test
+
+  android-package:
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Install Rust target
+        run: rustup toolchain install 1.85.0 --profile minimal --target aarch64-linux-android
+      - name: Fetch reviewed dependencies
+        run: cargo +1.85.0 fetch --locked
+      - name: Build local test APK with the runner Android SDK
+        shell: bash
+        run: |
+          export ANDROID_NDK_HOME="$(find "$ANDROID_HOME/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          python3 scripts/package-game.py --project examples/projects/creator_lab --platform android --output target/ci-android --debug

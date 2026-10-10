@@ -322,6 +322,11 @@ pub(crate) fn build_styled(
     let mut triangles = Vec::new();
     let mut lines = Vec::new();
     for spec in &scene.bodies {
+        let hidden = style.hidden_bodies.contains(&spec.id);
+        if hidden && !options.colliders {
+            continue;
+        }
+        let triangle_start = triangles.len();
         let color = style
             .body_colors
             .get(&spec.id)
@@ -340,6 +345,31 @@ pub(crate) fn build_styled(
             colliders: options.colliders,
         };
         match spec.shape {
+            ShapeSpec::Box { half_extents } => builder.cuboid(half_extents),
+            ShapeSpec::Sphere { radius } => builder.sphere(radius),
+        }
+        if hidden {
+            triangles.truncate(triangle_start);
+        }
+    }
+    for visual in &style.visuals {
+        let state = BodyState {
+            id: visual.id.clone(),
+            position: visual.position,
+            rotation: visual.rotation,
+            linear_velocity: [0.; 3],
+            angular_velocity: [0.; 3],
+            sleeping: false,
+        };
+        let mut builder = MeshBuilder {
+            projection: &projection,
+            state: &state,
+            color: visual.color,
+            triangles: &mut triangles,
+            lines: &mut lines,
+            colliders: false,
+        };
+        match visual.shape {
             ShapeSpec::Box { half_extents } => builder.cuboid(half_extents),
             ShapeSpec::Sphere { radius } => builder.sphere(radius),
         }

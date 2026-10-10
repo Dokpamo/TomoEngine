@@ -16,6 +16,11 @@ use tomo_runtime::Snapshot;
 use tomo_scene::{Problem, Scene};
 
 pub use geometry::{ProjectedBody, pick_body, plane_position, project_bodies};
+#[cfg(feature = "audio")]
+pub mod audio;
+mod content;
+pub use content::*;
+
 pub use overlay::{FrameStyle, OverlayRect, OverlayText};
 pub use window::WindowRenderer;
 

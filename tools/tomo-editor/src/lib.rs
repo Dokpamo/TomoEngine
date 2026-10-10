@@ -2,8 +2,9 @@
 //! Editor session: isolated play world plus a versioned authoring document.
 #![forbid(unsafe_code)]
 mod logic_ui;
+mod studio_ui;
 pub mod ui;
-use tomo_game::{Game, Input};
+use tomo_game::Input;
 use tomo_project::{Document, Project, ProjectFile};
 use tomo_scene::Problem;
 
@@ -11,7 +12,7 @@ pub struct Editor {
     pub document: Document,
     pub file: Option<ProjectFile>,
     pub selected: Option<String>,
-    pub game: Option<Game>,
+    pub game: Option<tomo_project::Session>,
     pub paused: bool,
     pub failed: bool,
     pub message: String,
@@ -54,7 +55,7 @@ impl Editor {
     }
     pub fn start(&mut self) -> Result<(), Problem> {
         self.document.end_gesture();
-        let game = self.document.project().game()?;
+        let game = tomo_project::Session::new(self.document.project().clone())?;
         self.game = Some(game);
         self.paused = false;
         self.failed = false;
@@ -91,5 +92,55 @@ impl Editor {
             .as_mut()
             .ok_or_else(|| Problem::new("PROJECT", "/path", "choose a new project folder first"))?
             .save(self.document.project())
+    }
+}
+
+impl Editor {
+    pub fn game_action(&mut self, action: tomo_scene::UiAction) -> Result<(), Problem> {
+        let path = self
+            .file
+            .as_ref()
+            .map(|f| f.path().with_file_name("progress.tomo.json"));
+        let Some(game) = &mut self.game else {
+            return Ok(());
+        };
+        match action {
+            tomo_scene::UiAction::Restart => game.restart()?,
+            tomo_scene::UiAction::Pause => self.paused = true,
+            tomo_scene::UiAction::Resume => {
+                self.paused = false;
+                game.begin();
+            }
+            tomo_scene::UiAction::NextScene => game.next_scene()?,
+            tomo_scene::UiAction::Save => game.save_progress(path.ok_or_else(|| {
+                Problem::new(
+                    "SAVE_PATH",
+                    "/save",
+                    "save the project before saving progress",
+                )
+            })?)?,
+            tomo_scene::UiAction::Load => game.load_progress(path.ok_or_else(|| {
+                Problem::new(
+                    "SAVE_PATH",
+                    "/save",
+                    "save the project before loading progress",
+                )
+            })?)?,
+        }
+        Ok(())
+    }
+}
+
+pub fn hud_state(game: &tomo_game::Game, paused: bool) -> tomo_render::HudState {
+    tomo_render::HudState {
+        score: game.score(),
+        seconds: game.seconds(),
+        paused,
+        status: match game.status() {
+            tomo_game::Status::Ready => tomo_scene::Visibility::Ready,
+            tomo_game::Status::Playing => tomo_scene::Visibility::Playing,
+            tomo_game::Status::Won => tomo_scene::Visibility::Won,
+            tomo_game::Status::Lost => tomo_scene::Visibility::Lost,
+        },
     }
 }

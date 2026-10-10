@@ -2,7 +2,10 @@
 //! Shared rule-driven physics games, executable through fixed-tick input replays.
 #![forbid(unsafe_code)]
 
+mod checkpoint;
 mod execution;
+pub mod sdk;
+pub use checkpoint::Checkpoint;
 mod logic;
 mod replay;
 mod rules;
@@ -45,7 +48,7 @@ impl Input {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Status {
     Ready,
@@ -56,6 +59,7 @@ pub enum Status {
 
 /// A session stores only a best time in memory; restart constructs a fresh physics world.
 pub struct Game {
+    content: tomo_scene::Content,
     rules: GameRules,
     runtime: Runtime,
     snapshot: Snapshot,
@@ -67,6 +71,10 @@ pub struct Game {
     rule_fires: Vec<u32>,
     recent_events: Vec<RuleEvent>,
     failed: bool,
+    history: Vec<checkpoint::RecordedInput>,
+    history_complete: bool,
+    manual_start: bool,
+    sounds: Vec<tomo_scene::SoundCue>,
 }
 
 impl Game {
@@ -75,12 +83,21 @@ impl Game {
     }
 
     pub fn from_scene(scene: Scene, rules: GameRules) -> Result<Self, Problem> {
+        Self::with_content(scene, rules, Default::default())
+    }
+    pub fn with_content(
+        scene: Scene,
+        rules: GameRules,
+        content: tomo_scene::Content,
+    ) -> Result<Self, Problem> {
         scene.validate()?;
+        content.validate(&scene)?;
         rules.validate(&scene)?;
         let runtime = Runtime::from_scene(scene)?;
         let snapshot = runtime.snapshot()?;
         let rule_fires = vec![0; rules.logic.rules.len()];
         Ok(Self {
+            content,
             rules,
             runtime,
             snapshot,
@@ -92,7 +109,21 @@ impl Game {
             rule_fires,
             recent_events: vec![],
             failed: false,
+            history: vec![],
+            history_complete: true,
+            manual_start: false,
+            sounds: vec![],
         })
+    }
+
+    pub fn take_sounds(&mut self) -> Vec<tomo_scene::SoundCue> {
+        std::mem::take(&mut self.sounds)
+    }
+    pub fn begin(&mut self) {
+        self.manual_start = true;
+    }
+    pub fn content(&self) -> &tomo_scene::Content {
+        &self.content
     }
 
     pub fn rules(&self) -> &GameRules {
@@ -142,7 +173,11 @@ impl Game {
     }
 
     pub fn restart(&mut self) -> Result<(), Problem> {
-        let mut fresh = Self::from_scene(self.scene().clone(), self.rules.clone())?;
+        let mut fresh = Self::with_content(
+            self.scene().clone(),
+            self.rules.clone(),
+            self.content.clone(),
+        )?;
         fresh.best_ticks = self.best_ticks;
         *self = fresh;
         Ok(())
@@ -156,9 +191,38 @@ impl Game {
                 "restart after a rule or physics failure",
             ));
         }
+        let before = self.elapsed_ticks;
+        let before_score = self.score;
+        let before_status = self.status;
+        let fires = self.rule_fires.clone();
+        self.sounds.clear();
         let result = self.advance(input);
         if result.is_err() {
             self.failed = true;
+        } else if self.elapsed_ticks != before {
+            self.record(input);
+            for cue in &self.content.sounds {
+                let fire = match &cue.trigger {
+                    tomo_scene::CueTrigger::Start {} => before == 0,
+                    tomo_scene::CueTrigger::Score {} => before_score != self.score,
+                    tomo_scene::CueTrigger::Won {} => {
+                        before_status != Status::Won && self.status == Status::Won
+                    }
+                    tomo_scene::CueTrigger::Lost {} => {
+                        before_status != Status::Lost && self.status == Status::Lost
+                    }
+                    tomo_scene::CueTrigger::Rule { id } => self
+                        .rules
+                        .logic
+                        .rules
+                        .iter()
+                        .position(|r| r.id == *id)
+                        .is_some_and(|i| fires[i] != self.rule_fires[i]),
+                };
+                if fire {
+                    self.sounds.push(cue.clone());
+                }
+            }
         }
         result
     }

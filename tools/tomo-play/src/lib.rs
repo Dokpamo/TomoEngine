@@ -4,4 +4,6 @@
 pub use tomo_game::{
     FrameClock, Game, GameRules, Input, LEVEL, Replay, ReplaySegment, SPEED, Status,
 };
+pub mod desktop;
+mod touch;
 pub mod view;

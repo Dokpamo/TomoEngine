@@ -1,3 +1,7 @@
+> 제작 v3 업데이트: 현재 프로젝트는 v3로 저장하며 v1/v2를 읽습니다. 일반 객체·카메라·장면·
+> 프리팹·UI·효과음·진행 저장·Rust SDK·AI 편집 사용법은 [AUTHORING.md](AUTHORING.md),
+> 패키징과 플랫폼 검증은 [PLATFORMS.md](PLATFORMS.md)를 참고하세요. 아래 기존 v1/v2 설명은 해당 형식/기능의 계약입니다.
+
 # 실행 가능한 AI 조작 인터페이스
 
 이 명령은 `tools/tomo-cli`의 Rust binary `tomo`에 구현되어 있다. `render` feature로
@@ -82,7 +86,7 @@ rotation=identity, mass=1, velocities=0, friction=0.5, restitution=0,
 is_sensor=false, allow_sleep=true가 기본값이다. 비동적 body의 mass는 v1에서 기본 표식 1만 허용한다.
 
 현재 scene은 primitive bodies만 노출한다. Physics 자체에 있는 거리 관절·force/ray API가
-모두 이 scene schema에 노출된 것은 아니다. 프리팹·게임 로직·에셋 참조·컨트롤러는 후속 버전 대상이다.
+모두 이 scene schema에 노출된 것은 아니다. 프리팹·게임 로직은 상위 Project v3 데이터에 존재하며 파일 에셋 참조는 후속이다.
 
 checks는 **마지막 tick**에서 position의 포함 범위와 선형 speed 상한을 검사한다.
 중간 프레임의 관통, 충돌 유무나 전체 동작 궤적을 검사했다고 해석하지 않는다.
@@ -93,7 +97,7 @@ op은 add/remove/set_transform/set_material. 순서대로 적용하고 전체 �
 expected_revision은 입력 문서와 같아야 하고 성공 시 1 증가한다. 실패하면 후보는 버리고
 원본은 유지한다. 존재하지 않는 ID, 중복 추가, 남은 check가 참조하는 body 삭제를 거부한다.
 재시도 시 같은 원본+patch는 같은 후보를 만들지만 이미 새 revision인 문서에 재적용하면
-충돌한다. 서버 측 요청 journal이나 exactly-once 처리는 아직 없다.
+충돌한다. scene patch 자체에는 서버 journal이 없다. Project edit의 로컬 journal은 AUTHORING.md를 따른다. exactly-once 외부 작업은 보장하지 않는다.
 
 ## 한도와 보안 경계
 
@@ -125,6 +129,6 @@ cargo run -q -p tomo-cli --locked --offline -- project validate ./MyGame
 new는 존재하지 않는 폴더에 project.tomo.json을 만든다. validate는 프로젝트/Scene/게임
 참조·수치·실제 world 구축을 검사하며 파일을 바꾸지 않는다. 두 명령은 기본 CLI에 포함되고
 GPU를 초기화하지 않는다. 에디터와 독립 플레이어가 동일 파일을 사용한다. 원자성·저장 충돌과
-한도는 [EDITOR.md](EDITOR.md), 구조 명세는 schemas/project-v2.schema.json과 logic-v1.schema.json을 따른다.
-기존 v1은 메모리에서 이행하고 validate는 원본을 덮어쓰지 않는다. capabilities는 프로젝트
-v2/이전 버전 import/선언적 로직 지원을 표시한다. 임의 스크립트 실행은 지원하지 않는다.
+한도는 [EDITOR.md](EDITOR.md), 구조 명세는 schemas/project-v3.schema.json과 logic-v1.schema.json을 따른다.
+기존 v1/v2는 메모리에서 이행하고 validate는 원본을 덮어쓰지 않는다. capabilities는 프로젝트
+v3/이전 버전 import/선언적 로직 지원을 표시한다. 임의 스크립트 실행은 지원하지 않는다.

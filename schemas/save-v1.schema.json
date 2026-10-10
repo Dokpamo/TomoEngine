@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "$id": "urn:tomo:save:1",
+  "title": "Tomo project progress save v1",
+  "required": [
+    "schema_version",
+    "project",
+    "checkpoint"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "project": {
+      "$ref": "urn:tomo:project:3"
+    },
+    "checkpoint": {
+      "$ref": "urn:tomo:checkpoint:1"
+    }
+  }
+}

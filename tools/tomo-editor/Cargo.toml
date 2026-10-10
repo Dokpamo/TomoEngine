@@ -15,7 +15,7 @@ fma = ["tomo-project/fma"]
 tomo-scene = { path = "../../crates/tomo-scene" }
 tomo-game = { path = "../../crates/tomo-game" }
 tomo-project = { path = "../../crates/tomo-project" }
-tomo-render = { path = "../../crates/tomo-render", features = ["editor"] }
+tomo-render = { path = "../../crates/tomo-render", features = ["editor", "audio"] }
 serde_json.workspace = true
 egui = "=0.32.3"
 egui-winit = { version = "=0.32.3", default-features = false, features = ["clipboard", "x11", "wayland"] }

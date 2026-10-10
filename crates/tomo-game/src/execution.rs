@@ -14,6 +14,7 @@ impl Game {
             return Ok(());
         }
         if self.status == Status::Ready
+            && !self.manual_start
             && self.rules.logic.start == StartMode::FirstInput
             && input.direction() == [0., 0.]
             && !input.action
@@ -139,7 +140,7 @@ impl Game {
         self.snapshot = self.runtime.snapshot()?;
         Ok(())
     }
-    fn apply_action(&mut self, action: Action, input: Input) -> Result<(), Problem> {
+    pub(crate) fn apply_action(&mut self, action: Action, input: Input) -> Result<(), Problem> {
         match action {
             Action::MovePlayer {} => {
                 let [x, z] = input.direction();

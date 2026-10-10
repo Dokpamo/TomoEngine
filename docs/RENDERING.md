@@ -79,10 +79,10 @@ GPU 테스트는 adapter가 필요한 사실을 `ignore`로 표시하며, 위 �
 `images/primitives.png`와 `validation/m2-metal.json`은 해당 실행의 실제 출력이다.
 Linux 소프트웨어 Vulkan 검증은 CI의 gpu-capture job으로 별도 실행한다. 커밋별 성공 여부는
 Actions 결과가 기준이다. macOS 대화형 창/입력은 Box Run에서 검증했다. Windows DX12 실기기, iOS/Android 실기기,
-GLB/PBR/스키닝/게임 SDK는 아직 검증·구현하지 않았다.
+GLB/PBR/스키닝은 미구현이다. 제작 v3의 SDK/모바일 증거는 AUTHORING.md와 PLATFORMS.md를 따른다.
 
 Box Run은 움직임/목적지/재시작/입력 재현과 실시간 수명/CLI 예산 분리를 구현했다.
-일반 장면 객체와 물리 body의 분리, 에셋 렌더링은 후속이다.
+제작 v3에서 일반 visual entity와 물리 body를 분리했다. 파일 에셋 렌더링은 후속이다.
 Jolt 원본 inventory와 differential test는 계속 독립 목표로 남는다.
 
 ## Editor backend 의존성 결정
@@ -112,3 +112,39 @@ image/png 0.18/tiff/zune/fax/weezl/moxcms/pxfm 전이 코드를 포함하지만,
 
 에디터의 실제 창·atlas·resize 검사는 `cargo run -p tomo-editor --locked --offline -- --smoke-test`다.
 자동 GUI/문서 테스트와 수동 조작 범위는 EDITOR.md를 따른다.
+
+
+## Audio output boundary (authoring v3)
+
+CPAL **0.15.3** (Apache-2.0) is pinned as an optional `tomo-render/audio` OS adapter,
+selected by the editor and player. Its purpose is real default-device audio output;
+CPU-only scene/game/project/physics crates remain independent of CPAL. Reference:
+https://docs.rs/cpal/0.15.3/cpal/ . Tones are synthesized with attack/release envelopes,
+32 concurrent voices, a 64-message queue and bounded gain. Queue/device errors are
+reported; headless runs never open a device. This is synthesized effects, not a claim
+of compressed audio decoding, music streaming or spatial audio support.
+
+The 40 added lockfile packages were reviewed for version, license, build script and
+native boundary declarations. All have MIT/Apache/BSD permissive license options.
+CoreAudio/coreaudio-sys use Apple's framework and bindgen/clang (macOS/iOS);
+ALSA/alsa-sys require Linux libasound2-dev; windows 0.54 uses WASAPI; Android's
+oboe/oboe-sys/JNI/NDK include external native C++ audio code. These remain above
+the core boundary. Bindgen, clang-sys, coreaudio-sys, CPAL, ALSA and oboe build
+scripts and Windows target libraries are recorded in reviewed-dependencies.json.
+No authored unsafe/FFI/build.rs or native source was introduced. This declaration
+review is not a full dependency audit or proof of device support on every platform.
+
+## Android entry and mobile surface review
+
+Owner approval on 2026-10-10 permits exactly the exported `android_main` attribute in
+`tools/tomo-android/src/lib.rs`. The crate uses deny(unsafe_code), with a local allowance
+for unsafe(no_mangle); no authored unsafe block, raw-pointer code, C ABI or physics FFI.
+Winit 0.30.13's existing android-activity 0.6 NativeActivity feature supplies the OS bridge.
+The Android cdylib reads bounded APK assets and uses app-private saves; no network permission.
+The NDK toolchain/linker is packaging infrastructure; its libc++ shared library/NOTICE is
+bundled for CPAL/Oboe. No external Cargo versions were changed by this feature.
+
+iOS uses the full outer window size for both Metal and UIKit touch coordinates: winit
+0.30 inner_size reports only the safe area. Mobile window sizing is OS-owned.
+Surface resize/loss/recreation and controls share the same coordinate system.
+This is platform integration, not mobile physical-device certification.

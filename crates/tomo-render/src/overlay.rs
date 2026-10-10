@@ -6,6 +6,8 @@ use tomo_scene::{Problem, Scene};
 /// Presentation data stays outside the physics scene. Colors are linear RGB in 0..1.
 #[derive(Clone, Default)]
 pub struct FrameStyle {
+    pub visuals: Vec<crate::VisualInstance>,
+    pub hidden_bodies: std::collections::BTreeSet<String>,
     pub body_colors: BTreeMap<String, [f32; 3]>,
     pub rectangles: Vec<OverlayRect>,
     pub text: Vec<OverlayText>,
@@ -39,6 +41,8 @@ fn valid_position(position: &[f32; 2]) -> bool {
 impl FrameStyle {
     pub(crate) fn validate(&self, scene: &Scene) -> Result<(), Problem> {
         if self.body_colors.len() > tomo_scene::MAX_BODIES
+            || self.visuals.len() > 256
+            || self.hidden_bodies.len() > 256
             || self.rectangles.len() > 128
             || self.text.iter().map(|t| t.text.len()).sum::<usize>() > 2048
             || self.text.len() > 64
@@ -48,6 +52,33 @@ impl FrameStyle {
                 "/style",
                 "too many colors, rectangles or text characters",
             ));
+        }
+        for v in &self.visuals {
+            if !valid_color(&v.color)
+                || v.position.iter().any(|n| !n.is_finite() || n.abs() > 1.0e7)
+                || v.rotation.iter().any(|n| !n.is_finite())
+                || (v.rotation.iter().map(|v| v * v).sum::<f32>() - 1.).abs() > 0.001
+            {
+                return Err(Problem::new(
+                    "RENDER_INPUT",
+                    "/style/visuals",
+                    "invalid visual transform/color",
+                ));
+            }
+            let sizes = match v.shape {
+                tomo_scene::ShapeSpec::Box { half_extents } => half_extents,
+                tomo_scene::ShapeSpec::Sphere { radius } => [radius; 3],
+            };
+            if sizes
+                .iter()
+                .any(|n| !n.is_finite() || *n <= 0. || *n > 1.0e6)
+            {
+                return Err(Problem::new(
+                    "RENDER_INPUT",
+                    "/style/visuals",
+                    "invalid visual shape",
+                ));
+            }
         }
         for (id, color) in &self.body_colors {
             if !valid_color(color) || !scene.bodies.iter().any(|body| body.id == *id) {
