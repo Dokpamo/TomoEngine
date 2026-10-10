@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "revision": 0,
+  "name": "Expected failure: no floor",
+  "gravity": [0.0, -9.81, 0.0],
+  "fixed_dt": 0.016666668,
+  "bodies": [
+    {"id": "ball", "motion": "dynamic", "shape": {"type": "sphere", "radius": 0.5}, "position": [0.0, 5.0, 0.0]}
+  ],
+  "checks": [
+    {"kind": "position", "body": "ball", "min": [-1.0, 4.0, -1.0], "max": [1.0, 6.0, 1.0]}
+  ]
+}

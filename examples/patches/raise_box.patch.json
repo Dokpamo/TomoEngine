@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "expected_revision": 0,
+  "operations": [
+    {"op": "set_transform", "id": "box", "position": [0.0, 8.0, 0.0], "rotation": [0.0, 0.0, 0.0, 1.0]}
+  ]
+}
